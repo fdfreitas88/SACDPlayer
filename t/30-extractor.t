@@ -97,6 +97,10 @@ is_deeply([ sort map { $_->[0] } @shut ], ['queued', 'running'], 'both waiters n
 is_deeply([ grep { $_->[0] eq 'running' } @shut ], [ ['running', 0, 'shutdown'] ], 'running waiter gets (0, shutdown)');
 is_deeply([ grep { $_->[0] eq 'queued' } @shut ], [ ['queued', 0, 'shutdown'] ], 'queued waiter gets (0, shutdown)');
 is($x->tick, 0, 'idle after shutdown');
+# a clean shutdown is not an extraction failure: both the running and the queued track
+# must be left absent (re-requestable), never stuck in 'failed'.
+is($cache->trackState($key, '2ch', 3), 'absent', 'running track left absent after shutdown, not failed');
+is($cache->trackState($key, '2ch', 2), 'absent', 'queued track left absent after shutdown, not failed');
 delete $ENV{FAKE_SLEEP};
 
 # shutdown on an idle extractor is a no-op

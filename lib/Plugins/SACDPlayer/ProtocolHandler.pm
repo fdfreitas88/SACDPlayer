@@ -66,17 +66,22 @@ sub getNextTrack {
 	my $deadline;
 	$deadline = sub {
 		return if $done;
+		# The player may have already moved on to a different song (skip, stop) while this
+		# extraction was still pending: don't fail a track nobody is waiting on any more.
+		if ($client && $client->can('playingSong') && $client->playingSong && $client->playingSong != $song) {
+			return;
+		}
 		$done = 1;
 		$log->error("extraction deadline expired for $url");
 		$failCb->('PLUGIN_SACDPLAYER_EXTRACT_FAILED');
 	};
-	Slim::Utils::Timers::setTimer(undef, Time::HiRes::time() + $timeout + 30, $deadline);
+	Slim::Utils::Timers::setTimer($client || undef, Time::HiRes::time() + $timeout + 30, $deadline);
 
 	$x->request($iso, $area, $n, 0, sub {
 		my ($ok, $payload) = @_;
 		return if $done;
 		$done = 1;
-		Slim::Utils::Timers::killTimers(undef, $deadline);
+		Slim::Utils::Timers::killTimers($client || undef, $deadline);
 		if ($ok) { $cache->touch($key); _refreshAudioInfo($url, $payload); $successCb->() }
 		else     { $failCb->('PLUGIN_SACDPLAYER_EXTRACT_FAILED') }
 	});

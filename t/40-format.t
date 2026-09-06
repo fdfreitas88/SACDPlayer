@@ -1,4 +1,5 @@
 use strict; use warnings; use Test::More;
+no warnings 'once';
 use lib 'lib', 't/lib';
 use File::Temp qw(tempdir); use File::Spec; use Cwd qw(abs_path);
 use Slim::Utils::Log; use Slim::Utils::Prefs; use Slim::Schema;
@@ -43,6 +44,23 @@ is($tags->{CT}, 'fec', 'cached toc reused'); ok(scalar @Slim::Schema::CREATED, '
 my $iso2 = File::Spec->catfile($dir, 'Other.iso'); open $f, '>', $iso2; print $f 'y'; close $f;
 @Slim::Schema::CREATED = ();
 is_deeply(Plugins::SACDPlayer::Format->getTag($iso2), {}, 'no toc -> {}'); is(scalar @Slim::Schema::CREATED, 0, 'nothing created');
+
+# a single bad row (DB hiccup) must not abort the whole disc: getTag still returns the
+# container shape, and the failure is logged
+{
+	my $iso3 = File::Spec->catfile($dir, 'Bad.iso'); open $f, '>', $iso3; print $f 'z' x 50; close $f;
+	$Slim::Utils::Misc::FINDBIN = $fake;
+	Plugins::SACDPlayer::Registry->_resetBinaryForTests;
+	my $plog = logger('plugin.sacdplayer');
+	@{ $plog->{lines} } = ();
+	@Slim::Schema::CREATED = ();
+	no warnings 'redefine';
+	local *Slim::Schema::RSStub::updateOrCreate = sub { die "boom\n" };
+	my $tags3 = Plugins::SACDPlayer::Format->getTag($iso3);
+	is($tags3->{CT}, 'fec', 'CT still fec even when every updateOrCreate call dies');
+	ok((grep { /ERROR/ && /cannot create virtual track/ } @{ $plog->{lines} }), 'failure logged');
+	is(scalar @Slim::Schema::CREATED, 0, 'nothing recorded as created');
+}
 
 # Importer registers the tag class
 Plugins::SACDPlayer::Importer->initPlugin;

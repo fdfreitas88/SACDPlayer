@@ -1,4 +1,5 @@
 use strict; use warnings; use Test::More;
+no warnings 'once';
 use lib 'lib', 't/lib';
 use File::Temp qw(tempdir); use File::Spec; use Cwd qw(abs_path);
 use Slim::Utils::Log; use Slim::Utils::Prefs; use Slim::Utils::Timers;
@@ -23,7 +24,7 @@ Plugins::SACDPlayer::Registry->extractor(spawn => sub { my $pid = fork; exec @{ 
 # fake song/track/client
 package FakeTrack { sub new { bless { url => $_[1] }, $_[0] } sub url { $_[0]{url} } }
 package FakeSong { sub new { bless { t => FakeTrack->new($_[1]), client => $_[2] }, $_[0] } sub currentTrack { $_[0]{t} } sub track { $_[0]{t} } sub master { $_[0]{client} } }
-package FakeClient { sub new { bless { shown => [] }, shift } sub showBriefly { push @{ $_[0]{shown} }, $_[1] } }
+package FakeClient { sub new { bless { shown => [] }, shift } sub showBriefly { push @{ $_[0]{shown} }, $_[1] } sub playingSong { $_[0]{playingSong} } }
 package main;
 my $client = FakeClient->new;
 my $song = FakeSong->new($url, $client);
@@ -118,6 +119,23 @@ $_->() for @dl;          # a second firing must not double-report
 is(scalar @nerr, 1, 'deadline fails exactly once');
 is($nerr[0], 'PLUGIN_SACDPLAYER_EXTRACT_FAILED', 'deadline uses the fail token');
 ok(!$nok, 'no success callback');
+$x->shutdown;
+
+# the deadline must not fail a track the client already moved on from (skip/stop): if
+# playingSong points at a different song than the one this getNextTrack call was for,
+# the deadline closure is a no-op.
+$cache->setTrackState($key, '2ch', 1, 'absent'); unlink $cache->trackPath($key, '2ch', 1);
+@Slim::Utils::Timers::T = ();
+my ($mok, $merr);
+my $movedOnClient = FakeClient->new;
+my $staleSong = FakeSong->new($notReady, $movedOnClient);
+Plugins::SACDPlayer::ProtocolHandler->getNextTrack($staleSong, sub { $mok = 1 }, sub { $merr = shift });
+$movedOnClient->{playingSong} = FakeSong->new($notReady, $movedOnClient); # a different Song object
+@dl = map { $_->[2] } deadlines();
+ok(scalar @dl, 'a deadline timer was armed for the stale song');
+$_->() for @dl;
+ok(!$merr, 'deadline does not fail a track the client already moved on from');
+ok(!$mok, 'no success callback either');
 $x->shutdown;
 
 done_testing;

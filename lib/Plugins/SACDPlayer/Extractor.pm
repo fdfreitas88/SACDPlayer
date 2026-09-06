@@ -124,13 +124,20 @@ sub _reap {
 sub shutdown {
 	my ($self) = @_;
 	if (my $c = $self->{current}) {
+		my $job = $c->{job};
 		$c->{proc}->die if $c->{proc} && $c->{proc}->can('die');
 		$self->_reap($c->{proc});
 		$self->_finish(0, 'shutdown');
+		# A clean shutdown is not an extraction failure: leave the track absent so it is
+		# simply re-requested next time, rather than parked in 'failed'.
+		$self->{cache}->setTrackState($job->{key}, $job->{area}, $job->{number}, 'absent');
 	}
 	my @pending = @{ $self->{queue} };
 	$self->{queue} = [];
-	for my $j (@pending) { $_->(0, 'shutdown') for @{ $j->{waiters} } }
+	for my $j (@pending) {
+		$self->{cache}->setTrackState($j->{key}, $j->{area}, $j->{number}, 'absent');
+		$_->(0, 'shutdown') for @{ $j->{waiters} };
+	}
 	return 1;
 }
 

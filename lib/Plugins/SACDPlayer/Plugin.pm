@@ -43,6 +43,7 @@ sub _tick {
 		$log->error("tick failed: $@");
 		$busy = $x->busy || @{ $x->queued };
 	}
+	Plugins::SACDPlayer::Registry->applyPendingReset unless $busy;
 	armTick() if $busy;
 }
 

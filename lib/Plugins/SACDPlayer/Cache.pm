@@ -211,13 +211,26 @@ sub recover {
 	for my $pair ($self->_allIndexes) {
 		my ($key, $idx) = @$pair;
 		my $dirty = 0;
-		for my $t (values %{ $idx->{tracks} }) {
-			if (($t->{state} // '') eq 'extracting') { $t->{state} = 'pending'; $dirty = 1 }
+		for my $slot (keys %{ $idx->{tracks} }) {
+			my $t = $idx->{tracks}{$slot};
+			my $state = $t->{state} // '';
+			if ($state eq 'extracting') { $t->{state} = 'pending'; $dirty = 1 }
+			# A 'pending' track was only ever queued in the (now-gone) in-memory extractor
+			# queue; nothing will resume it, so drop it back to absent rather than leaving
+			# a stale entry that looks queued forever.
+			elsif ($state eq 'pending') { delete $idx->{tracks}{$slot}; $dirty = 1 }
 		}
 		$self->saveIndex($key, $idx) if $dirty;
 	}
 	my $tmp = catdir($self->{dir}, 'tmp');
 	remove_tree($tmp, { keep_root => 1 });
+	if (opendir(my $dh, catdir($self->{dir}, 'index'))) {
+		for my $f (readdir $dh) {
+			next unless $f =~ /\.tmp$/;
+			unlink catfile($self->{dir}, 'index', $f);
+		}
+		closedir $dh;
+	}
 }
 
 1;

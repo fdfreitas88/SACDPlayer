@@ -1,4 +1,5 @@
 use strict; use warnings; use Test::More;
+no warnings 'once';
 use lib 'lib', 't/lib';
 use File::Temp qw(tempdir); use File::Spec; use Cwd qw(abs_path);
 use Slim::Utils::Log; use Slim::Utils::Prefs;
@@ -43,6 +44,13 @@ is($params->{message}, 'Settings saved; cache change applies after current extra
 
 Plugins::SACDPlayer::Registry->extractor->shutdown;
 is(scalar @{ Plugins::SACDPlayer::Registry->extractor->queued }, 0, 'queue drained');
+
+# the deferred reset above must be applied once the extractor goes idle, without needing
+# another settings save
+ok(Plugins::SACDPlayer::Registry->applyPendingReset, 'applyPendingReset returns 1 once idle');
+is(Plugins::SACDPlayer::Registry->cache->dir, "$dir/other", 'cache dir picked up the pending change');
+is(Plugins::SACDPlayer::Registry->applyPendingReset, 0, 'applyPendingReset is a no-op once already applied');
+
 $params = Plugins::SACDPlayer::Settings->handler(undef, {
 	saveSettings => 1,
 	cache_dir    => "$dir/other",

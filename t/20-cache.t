@@ -66,6 +66,19 @@ is($c->trackState($key2, '2ch', 2), 'pending', 'recovered to pending');
 ok(!-d $c->tmpDir($key2, '2ch', 2), 'tmp removed');
 ok($c->freeBytes > 0, 'df works');
 
+# recover: a track that was already 'pending' (only ever queued in the now-gone in-memory
+# extractor queue) is dropped back to absent rather than left stale forever
+$c->setTrackState($key2, '2ch', 2, 'pending');
+$c->recover;
+is($c->trackState($key2, '2ch', 2), 'absent', 'stale pending track recovered to absent');
+
+# recover: stray index/*.tmp files (a crash mid-saveIndex) are unlinked
+my $strayTmp = File::Spec->catfile("$dir/cache", 'index', "$key2.json.99999.1.tmp");
+open my $stray, '>', $strayTmp or die; print $stray '{}'; close $stray;
+ok(-f $strayTmp, 'stray tmp file created');
+$c->recover;
+ok(!-f $strayTmp, 'stray index tmp file removed by recover');
+
 # a track row without a state must not blow up the readers
 {
 	my $bad = $c->loadIndex($key2);
@@ -106,5 +119,20 @@ my $unknown_key = 'deadbeefdeadbeef';
 $c->setTrackState($unknown_key, '2ch', 1, 'pending');
 ok(!-f $c->indexPath($unknown_key), 'no index file created for unknown key');
 is($c->trackState($unknown_key, '2ch', 1), 'absent', 'unknown key still absent');
+
+# saveIndex leaves no *.tmp file behind, and two back-to-back calls from the same
+# process do not collide (the tmp name includes pid + hi-res time)
+{
+	my $idx3 = $c->loadIndex($key2);
+	$c->saveIndex($key2, $idx3);
+	my @leftover = glob(File::Spec->catfile("$dir/cache", 'index', '*.tmp'));
+	is_deeply(\@leftover, [], 'no tmp file left after saveIndex');
+
+	$c->saveIndex($key2, $idx3);
+	$c->saveIndex($key2, $idx3);
+	@leftover = glob(File::Spec->catfile("$dir/cache", 'index', '*.tmp'));
+	is_deeply(\@leftover, [], 'no tmp file left after consecutive saveIndex calls');
+	ok(defined $c->loadIndex($key2), 'index still readable after consecutive saves');
+}
 
 done_testing;

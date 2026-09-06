@@ -25,6 +25,7 @@ sub prefs {
 sub cacheDir { $_[0]->prefs->get('cache_dir') }
 
 my ($cache, $binary, $extractor);
+my $pendingReset = 0;
 sub cache {
 	my $class = shift;
 	return $cache if $cache;
@@ -43,8 +44,22 @@ sub cache {
 sub resetCache {
 	if ($extractor && ($extractor->busy || @{ $extractor->queued })) {
 		$log->info('cache reset deferred: extractor still busy');
+		$pendingReset = 1;
 		return 0;
 	}
+	undef $cache;
+	undef $extractor;
+	return 1;
+}
+
+# Called from Plugin::_tick once the extractor goes idle: applies a cache reset that
+# resetCache had to defer because sacd_extract was still writing into the old cache dir.
+sub applyPendingReset {
+	return 0 unless $pendingReset;
+	if ($extractor && ($extractor->busy || @{ $extractor->queued })) {
+		return 0;
+	}
+	$pendingReset = 0;
 	undef $cache;
 	undef $extractor;
 	return 1;

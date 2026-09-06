@@ -1,4 +1,5 @@
 use strict; use warnings; use Test::More;
+no warnings 'once';
 use lib 'lib', 't/lib';
 use File::Temp qw(tempdir); use File::Spec; use Cwd qw(abs_path);
 use Slim::Utils::Log; use Slim::Utils::Prefs; use Slim::Utils::Timers;
