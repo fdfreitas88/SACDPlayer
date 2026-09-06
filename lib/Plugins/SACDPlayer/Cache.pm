@@ -26,15 +26,18 @@ sub new {
 sub dir { $_[0]{dir} }
 sub _log { my $self = shift; $self->{log} && $self->{log}->can('info') ? $self->{log} : undef }
 
+# undef when the ISO cannot be stat-ed (deleted, share offline). Callers must not
+# fabricate a key from a missing file: that would silently point at a different album.
 sub isoInfo {
 	my ($self, $iso) = @_;
-	my @st = stat($iso) or return { size => 0, mtime => 0 };
+	return undef unless defined $iso;
+	my @st = stat($iso) or return undef;
 	return { size => $st[7], mtime => $st[9] };
 }
 
 sub keyFor {
 	my ($self, $iso) = @_;
-	my $i = $self->isoInfo($iso);
+	my $i = $self->isoInfo($iso) or return undef;
 	return substr(md5_hex("$iso|$i->{size}|$i->{mtime}"), 0, 16);
 }
 
@@ -48,7 +51,7 @@ sub trackUrl {
 
 sub parseUrl {
 	my ($self, $url) = @_;
-	return () unless defined $url && $url =~ m{^sacd://([^/]+)/(2ch|mch)/(\d{2})\.dsf$};
+	return () unless defined $url && $url =~ m{^sacd://([^/]+)/(2ch|mch)/(\d{2,3})\.dsf$};
 	return (_unescape($1), $2, int($3));
 }
 
@@ -59,6 +62,7 @@ sub _slot     { my ($a, $n) = @_; sprintf('%s/%02d', $a, $n) }
 
 sub loadIndex {
 	my ($self, $key) = @_;
+	return undef unless defined $key;
 	my $p = $self->indexPath($key);
 	return undef unless -f $p;
 	open my $fh, '<:raw', $p or return undef;
@@ -70,15 +74,17 @@ sub loadIndex {
 sub saveIndex {
 	my ($self, $key, $idx) = @_;
 	my $p = $self->indexPath($key);
+	# Unique temp name: two processes (server + scanner) may save the same index at once.
+	my $tmp = "$p.$$." . Time::HiRes::time() . ".tmp";
 	eval {
-		open my $fh, '>:raw', "$p.tmp" or die "cannot write $p.tmp: $!";
+		open my $fh, '>:raw', $tmp or die "cannot write $tmp: $!";
 		print $fh $json->encode($idx) or die "write failed: $!";
 		close $fh or die "close failed: $!";
-		rename "$p.tmp", $p or die "rename failed: $!";
+		rename $tmp, $p or die "rename failed: $!";
 		1;
 	} or do {
 		my $err = $@ || 'unknown error';
-		unlink "$p.tmp";
+		unlink $tmp;
 		die $err;
 	};
 	return $idx;
@@ -86,8 +92,8 @@ sub saveIndex {
 
 sub ensureIndex {
 	my ($self, $iso, $toc) = @_;
-	my $key = $self->keyFor($iso);
-	my $i   = $self->isoInfo($iso);
+	my $key = $self->keyFor($iso) or return undef;
+	my $i   = $self->isoInfo($iso) or return undef;
 	my $idx = $self->loadIndex($key);
 	if (!$idx || !defined $idx->{size} || !defined $idx->{mtime} || $idx->{size} != $i->{size} || $idx->{mtime} != $i->{mtime}) {
 		$idx = { iso => $iso, size => $i->{size}, mtime => $i->{mtime}, toc => $toc, last_access => time, tracks => {} };
@@ -99,10 +105,12 @@ sub ensureIndex {
 
 sub trackState {
 	my ($self, $key, $area, $n) = @_;
+	return 'absent' unless defined $key;
 	my $idx = $self->loadIndex($key) or return 'absent';
 	my $t = $idx->{tracks}{ _slot($area, $n) } or return 'absent';
-	return 'absent' if $t->{state} eq 'ready' && !-f $self->trackPath($key, $area, $n);
-	return $t->{state};
+	my $state = $t->{state} // '';
+	return 'absent' if $state eq 'ready' && !-f $self->trackPath($key, $area, $n);
+	return length($state) ? $state : 'absent';
 }
 
 sub setTrackState {
@@ -114,7 +122,7 @@ sub setTrackState {
 	}
 	my $slot = _slot($area, $n);
 	$idx->{tracks}{$slot} = { state => $state, bytes => $extra{bytes} // ($idx->{tracks}{$slot}{bytes} // 0), error => $extra{error} };
-	delete $idx->{tracks}{$slot} if $state eq 'absent';
+	delete $idx->{tracks}{$slot} if ($state // '') eq 'absent';
 	$self->saveIndex($key, $idx);
 }
 
@@ -146,7 +154,7 @@ sub albumsByAge {
 		my %bytes;
 		for my $slot (keys %{ $idx->{tracks} }) {
 			my $t = $idx->{tracks}{$slot};
-			next unless $t->{state} eq 'ready';
+			next unless ($t->{state} // '') eq 'ready';
 			my ($area) = split m{/}, $slot;
 			$bytes{$area} += $t->{bytes} || 0;
 		}
@@ -184,9 +192,16 @@ sub enforceCap {
 
 sub freeBytes {
 	my ($self) = @_;
-	my $out = `df -k '$self->{dir}' 2>/dev/null`;
-	my ($avail) = ($out =~ /\n\S+\s+\d+\s+\d+\s+(\d+)/);
-	return ($avail || 0) * 1024;
+	# No shell: the cache directory is user-supplied and may contain quotes or spaces.
+	open(my $fh, '-|', 'df', '-k', '--', $self->{dir}) or return 0;
+	my @lines = <$fh>;
+	close $fh;
+	shift @lines;                                   # header
+	my $avail = 0;
+	for my $l (@lines) {
+		if ($l =~ /^\S+\s+\d+\s+\d+\s+(\d+)/) { $avail = $1; last }
+	}
+	return $avail * 1024;
 }
 
 sub lowOnDisk { my $s = shift; $s->{min_free_bytes} > 0 && $s->freeBytes < $s->{min_free_bytes} ? 1 : 0 }
@@ -197,7 +212,7 @@ sub recover {
 		my ($key, $idx) = @$pair;
 		my $dirty = 0;
 		for my $t (values %{ $idx->{tracks} }) {
-			if ($t->{state} eq 'extracting') { $t->{state} = 'pending'; $dirty = 1 }
+			if (($t->{state} // '') eq 'extracting') { $t->{state} = 'pending'; $dirty = 1 }
 		}
 		$self->saveIndex($key, $idx) if $dirty;
 	}

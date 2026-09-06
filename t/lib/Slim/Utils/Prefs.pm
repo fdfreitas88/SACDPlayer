@@ -1,4 +1,5 @@
 package Slim::Utils::Prefs;
+# Stub: in-memory only - no disk persistence, no validation, no change callbacks.
 use strict;
 use Exporter 'import';
 our @EXPORT = qw(preferences);

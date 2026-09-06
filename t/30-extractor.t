@@ -81,4 +81,26 @@ is($cache->trackState($key, '2ch', 3), 'absent', 'track state absent after cance
 is_deeply($cancelled, [0, 'cancelled'], 'waiter notified of cancellation');
 delete $ENV{FAKE_SLEEP};
 
+# shutdown: kill the running job, reap it, notify its waiter and drop the queue
+$ENV{FAKE_SLEEP} = 3;
+$cache->setTrackState($key, '2ch', 3, 'absent');
+$cache->setTrackState($key, '2ch', 2, 'absent'); unlink $cache->trackPath($key, '2ch', 2);
+my @shut;
+$x->request($iso, '2ch', 3, 0, sub { push @shut, ['running', @_] });
+$x->request($iso, '2ch', 2, 1, sub { push @shut, ['queued', @_] });
+$x->tick;
+ok($x->busy, 'busy before shutdown');
+$x->shutdown;
+ok(!$x->busy, 'not busy after shutdown');
+is(scalar @{ $x->queued }, 0, 'queue cleared by shutdown');
+is_deeply([ sort map { $_->[0] } @shut ], ['queued', 'running'], 'both waiters notified');
+is_deeply([ grep { $_->[0] eq 'running' } @shut ], [ ['running', 0, 'shutdown'] ], 'running waiter gets (0, shutdown)');
+is_deeply([ grep { $_->[0] eq 'queued' } @shut ], [ ['queued', 0, 'shutdown'] ], 'queued waiter gets (0, shutdown)');
+is($x->tick, 0, 'idle after shutdown');
+delete $ENV{FAKE_SLEEP};
+
+# shutdown on an idle extractor is a no-op
+$x->shutdown;
+ok(!$x->busy, 'shutdown while idle is harmless');
+
 done_testing;

@@ -75,5 +75,49 @@ $x->request($iso, '2ch', 1, 0, sub {});
 	Plugins::SACDPlayer::Plugin::_tick();
 }
 ok(scalar @Slim::Utils::Timers::T, 'tick re-armed after extractor exception with queued work');
+$x->shutdown;
+
+sub deadlines { grep { ref $_->[2] eq 'CODE' && $_->[2] != \&Plugins::SACDPlayer::Plugin::_tick } @Slim::Utils::Timers::T }
+
+# canSeek only once the DSF actually exists locally
+ok(Plugins::SACDPlayer::ProtocolHandler->canSeek(undef, FakeSong->new($url, $client)), 'ready track is seekable');
+my $notReady = $cache->trackUrl($iso, '2ch', 1);
+$cache->setTrackState($key, '2ch', 1, 'absent'); unlink $cache->trackPath($key, '2ch', 1);
+ok(!Plugins::SACDPlayer::ProtocolHandler->canSeek(undef, FakeSong->new($notReady, $client)), 'absent track is not seekable');
+
+# a vanished ISO: parseable url, no key -> clean failure, never operating on an undef key
+my $goneIso = File::Spec->catfile($dir, 'Gone.iso');
+open my $g, '>', $goneIso or die; print $g 'x'; close $g;
+my $goneUrl = $cache->trackUrl($goneIso, '2ch', 1);
+unlink $goneIso;
+my $ge; Plugins::SACDPlayer::ProtocolHandler->getNextTrack(FakeSong->new($goneUrl, $client), sub {}, sub { $ge = shift });
+is($ge, 'PLUGIN_SACDPLAYER_EXTRACT_FAILED', 'vanished ISO fails with the token');
+is(Plugins::SACDPlayer::ProtocolHandler->pathFromFileURL($goneUrl), undef, 'no path for a vanished ISO');
+is_deeply(Plugins::SACDPlayer::ProtocolHandler->getMetadataFor($client, $goneUrl),
+	{ title => 'Track 1', artist => '', album => '', duration => 0, sacd_state => 'absent' }, 'metadata shape for a vanished ISO');
+
+# the extraction deadline fires exactly one callback, and never after success
+@Slim::Utils::Timers::T = ();
+my ($sok, $serr);
+Plugins::SACDPlayer::ProtocolHandler->getNextTrack(FakeSong->new($notReady, $client), sub { $sok = 1 }, sub { $serr = shift });
+my @dl = map { $_->[2] } deadlines();
+ok(scalar @dl, 'a deadline timer was armed');
+$spins = 0; while ($x->tick && $spins++ < 200) { select undef, undef, undef, 0.05 }
+ok($sok, 'success callback fired');
+$_->() for @dl;
+ok(!$serr, 'deadline does not fail a track that already succeeded');
+
+# a never-finishing extraction: the deadline is the only thing that fires, and only once
+$cache->setTrackState($key, '2ch', 1, 'absent'); unlink $cache->trackPath($key, '2ch', 1);
+@Slim::Utils::Timers::T = ();
+my ($nok, @nerr);
+Plugins::SACDPlayer::ProtocolHandler->getNextTrack(FakeSong->new($notReady, $client), sub { $nok = 1 }, sub { push @nerr, shift });
+@dl = map { $_->[2] } deadlines();
+$_->() for @dl;          # no tick(): the extraction never finishes
+$_->() for @dl;          # a second firing must not double-report
+is(scalar @nerr, 1, 'deadline fails exactly once');
+is($nerr[0], 'PLUGIN_SACDPLAYER_EXTRACT_FAILED', 'deadline uses the fail token');
+ok(!$nok, 'no success callback');
+$x->shutdown;
 
 done_testing;

@@ -1,4 +1,5 @@
 package Slim::Utils::Log;
+# Stub: no log levels or appenders - every call is recorded and is_* always says false.
 use strict;
 use Exporter 'import';
 our @EXPORT = qw(logger logWarning logError);

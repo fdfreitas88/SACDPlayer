@@ -2,6 +2,7 @@ package Plugins::SACDPlayer::Toc;
 # Parses the text of `sacd_extract -P` (scarletbook_print.c) and runs the binary.
 use strict;
 use warnings;
+use POSIX ();
 
 # Fields printed by scarletbook_print_master_toc / _disc_text / _album_text.
 # Disc text is printed before Album text; the first non-empty value wins.
@@ -72,7 +73,11 @@ sub run {
 	return (undef, "fork failed: $!") unless defined $pid;
 	if (!$pid) {                                  # child
 		open STDERR, '>&', \*STDOUT;
-		exec($binary, '-P', '-i', $iso) or exit 127;
+		no warnings 'exec';
+		exec($binary, '-P', '-i', $iso);
+		# _exit, not exit: a plain exit would run the parent's END blocks (DESTROY, buffered
+		# output, Test::More's plan) in this forked copy of the interpreter.
+		POSIX::_exit(127);
 	}
 	local $SIG{ALRM} = sub { kill 'KILL', $pid; die "timeout\n" };
 	eval { alarm $timeout; local $/; $out = <$fh>; alarm 0; };

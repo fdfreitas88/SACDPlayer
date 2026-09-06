@@ -24,7 +24,7 @@ sub prefs {
 
 sub cacheDir { $_[0]->prefs->get('cache_dir') }
 
-my ($cache, $binary);
+my ($cache, $binary, $extractor);
 sub cache {
 	my $class = shift;
 	return $cache if $cache;
@@ -38,7 +38,17 @@ sub cache {
 	);
 	return $cache;
 }
-sub resetCache { undef $cache }
+# Returns 1 if the singletons were dropped, 0 if an extraction is in flight (the running
+# sacd_extract still writes into the old cache dir, so swapping it out now would strand files).
+sub resetCache {
+	if ($extractor && ($extractor->busy || @{ $extractor->queued })) {
+		$log->info('cache reset deferred: extractor still busy');
+		return 0;
+	}
+	undef $cache;
+	undef $extractor;
+	return 1;
+}
 sub binary {
 	return $binary if defined $binary;
 	require Slim::Utils::Misc;
@@ -49,7 +59,6 @@ sub binary {
 }
 sub _resetBinaryForTests { undef $binary }
 
-my $extractor;
 sub extractor {
 	my ($class, %opt) = @_;
 	return $extractor if $extractor && !%opt;

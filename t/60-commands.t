@@ -60,4 +60,14 @@ is(scalar @{ Plugins::SACDPlayer::Registry->extractor->queued }, 1, 'queued via 
 is($ok, 1, 'evictTarget ok');
 is(scalar @{ Plugins::SACDPlayer::Registry->extractor->queued }, 0, 'queue cleared via evictTarget');
 
+# a vanished ISO has no key: resolveTarget must return an empty list rather than an undef key
+my $gone = File::Spec->catfile($dir, 'Gone.iso');
+open my $g, '>', $gone or die; print $g 'x'; close $g;
+my $goneUrl = $cache->trackUrl($gone, '2ch', 1);
+unlink $gone;
+is_deeply([ Plugins::SACDPlayer::Commands::resolveTarget($goneUrl) ], [], 'resolveTarget () for a vanished ISO');
+my ($gok, $gerr) = Plugins::SACDPlayer::Commands::prepareTarget($goneUrl);
+is($gok, 0, 'prepareTarget refuses a vanished ISO');
+is($gerr, 'unknown target', 'prepareTarget error text');
+
 done_testing;

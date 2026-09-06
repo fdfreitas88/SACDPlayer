@@ -15,6 +15,7 @@ sub getTag {
 	return {} unless $file && -f $file;
 	my $cache = Plugins::SACDPlayer::Registry->cache;
 	my $key   = $cache->keyFor($file);
+	if (!defined $key) { $log->warn("cannot stat $file; skipping"); return {} }
 	my $idx   = $cache->loadIndex($key);
 	my $toc   = $idx && $idx->{toc} && @{ $idx->{toc}{areas} || [] } ? $idx->{toc} : undef;
 
@@ -32,14 +33,18 @@ sub getTag {
 	require Slim::Schema;
 	my $rs = Slim::Schema->rs('Track');
 	my $count = 0;
+	my $failed = 0;
 	for my $area (@{ $toc->{areas} }) {
 		for my $t (@{ $area->{tracks} }) {
 			my $attrs = attributesFor($toc, $area, $t, AGE => $st[9], FS => $st[7]);
-			$rs->updateOrCreate({ url => $cache->trackUrl($file, $area->{area}, $t->{number}), attributes => $attrs, readTags => 0 });
-			$count++;
+			my $url   = $cache->trackUrl($file, $area->{area}, $t->{number});
+			# One bad row (odd tag value, DB hiccup) must not abort the whole disc.
+			my $ok = eval { $rs->updateOrCreate({ url => $url, attributes => $attrs, readTags => 0 }); 1 };
+			if ($ok) { $count++ }
+			else     { $failed++; $log->error("cannot create virtual track $url: " . ($@ || 'unknown error')) }
 		}
 	}
-	$log->info("$file: created $count virtual tracks");
+	$log->info("$file: created $count virtual tracks" . ($failed ? " ($failed failed)" : ''));
 	return { CT => 'fec', AUDIO => 0, TITLE => $title, ARTIST => $toc->{artist}, ALBUM => $title, YEAR => $toc->{year} };
 }
 

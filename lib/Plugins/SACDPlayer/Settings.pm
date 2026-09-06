@@ -22,8 +22,9 @@ sub handler {
 			for my $k (qw(cache_cap_gb extract_timeout_s min_free_gb)) {
 				$prefs->set($k, int($params->{$k})) if defined $params->{$k} && $params->{$k} =~ /^\d+$/;
 			}
-			Plugins::SACDPlayer::Registry->resetCache;
-			$message = 'Settings saved.';
+			$message = Plugins::SACDPlayer::Registry->resetCache
+				? 'Settings saved.'
+				: 'Settings saved; cache change applies after current extraction';
 		}
 	}
 

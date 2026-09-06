@@ -66,6 +66,41 @@ is($c->trackState($key2, '2ch', 2), 'pending', 'recovered to pending');
 ok(!-d $c->tmpDir($key2, '2ch', 2), 'tmp removed');
 ok($c->freeBytes > 0, 'df works');
 
+# a track row without a state must not blow up the readers
+{
+	my $bad = $c->loadIndex($key2);
+	$bad->{tracks}{'2ch/09'} = { bytes => 10 };
+	$c->saveIndex($key2, $bad);
+	is($c->trackState($key2, '2ch', 9), 'absent', 'stateless track row reads as absent, not a crash');
+	ok(defined $c->usageBytes, 'albumsByAge survives a stateless row');
+	$c->recover;
+	pass('recover survives a stateless row');
+	$bad = $c->loadIndex($key2); delete $bad->{tracks}{'2ch/09'}; $c->saveIndex($key2, $bad);
+}
+
+# three-digit track numbers survive the url roundtrip (SACDs can have up to 255 tracks)
+my $u100 = $c->trackUrl($iso, '2ch', 100);
+my ($p100, $a100, $n100) = $c->parseUrl($u100);
+is($p100, $iso, 'track 100: path roundtrip');
+is($a100, '2ch', 'track 100: area');
+is($n100, 100, 'track 100: number');
+is($c->trackPath($key2, '2ch', 100), "$dir/cache/$key2/2ch/100.dsf", 'track 100 path');
+
+# freeBytes must not go through a shell: a quote in the directory name is harmless
+my $qdir = File::Spec->catdir($dir, "it's a cache");
+my $qc = Plugins::SACDPlayer::Cache->new(dir => $qdir, cap_bytes => 1000, min_free_bytes => 0, log => logger('t'));
+ok($qc->freeBytes > 0, 'freeBytes works for a directory whose name contains a quote');
+
+# a vanished ISO parses fine but has no key
+my $gone = File::Spec->catfile($dir, 'Gone.iso');
+open $f, '>', $gone or die; print $f 'z'; close $f;
+my $goneUrl = $c->trackUrl($gone, '2ch', 1);
+unlink $gone;
+my ($gp) = $c->parseUrl($goneUrl);
+is($gp, $gone, 'vanished ISO still parses out of the url');
+is($c->keyFor($gone), undef, 'keyFor is undef when the ISO cannot be stat-ed');
+is($c->ensureIndex($gone, $toc), undef, 'ensureIndex bails without a key');
+
 # setTrackState must never fabricate a bare index for an unknown key
 my $unknown_key = 'deadbeefdeadbeef';
 $c->setTrackState($unknown_key, '2ch', 1, 'pending');

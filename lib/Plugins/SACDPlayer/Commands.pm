@@ -21,7 +21,11 @@ sub resolveTarget {
 	my ($target) = @_;
 	my $cache = Plugins::SACDPlayer::Registry->cache;
 	return () unless defined $target;
-	if (my ($iso, $area) = $cache->parseUrl($target)) { return ($cache->keyFor($iso), $area, $iso) }
+	if (my ($iso, $area) = $cache->parseUrl($target)) {
+		my $key = $cache->keyFor($iso);
+		return () unless defined $key;             # ISO vanished: no key, so nothing to act on
+		return ($key, $area, $iso);
+	}
 	if ($target =~ m{^([0-9a-f]{16})/(2ch|mch)$}) {
 		my $idx = $cache->loadIndex($1) or return ();
 		return ($1, $2, $idx->{iso});

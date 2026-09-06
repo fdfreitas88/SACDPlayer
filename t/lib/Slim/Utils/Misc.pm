@@ -1,4 +1,5 @@
 package Slim::Utils::Misc;
+# Stub: findbin() ignores its argument and returns $FINDBIN - no PATH or Bin/ search.
 use strict;
 our $FINDBIN;   # tests set this to a fake binary path
 sub findbin { $FINDBIN }

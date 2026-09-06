@@ -5,6 +5,7 @@ use warnings;
 use base qw(Slim::Player::Protocols::File);
 use Slim::Utils::Log;
 use Slim::Utils::Timers;
+use Time::HiRes ();
 use Slim::Utils::Strings ();
 use Plugins::SACDPlayer::Registry;
 
@@ -13,14 +14,26 @@ my $log = logger('plugin.sacdplayer');
 sub isRemote { 0 }
 sub canDirectStream { 0 }
 sub contentType { 'dsf' }
-sub canSeek { 1 }
+# Seeking needs the local DSF: File::open cannot seek into a track we have not extracted yet.
+sub canSeek {
+	my ($class, $client, $song) = @_;
+	return 0 unless $song && $song->can('currentTrack') && $song->currentTrack;
+	my $cache = Plugins::SACDPlayer::Registry->cache;
+	my ($iso, $area, $n) = $cache->parseUrl($song->currentTrack->url);
+	return 0 unless $iso;
+	my $key = $cache->keyFor($iso);
+	return 0 unless defined $key;
+	return $cache->trackState($key, $area, $n) eq 'ready' ? 1 : 0;
+}
 
 sub pathFromFileURL {
 	my ($class, $url) = @_;
 	my $cache = Plugins::SACDPlayer::Registry->cache;
 	my ($iso, $area, $n) = $cache->parseUrl($url);
 	return $class->SUPER::pathFromFileURL($url) unless $iso;
-	return $cache->trackPath($cache->keyFor($iso), $area, $n);
+	my $key = $cache->keyFor($iso);
+	if (!defined $key) { $log->error("cannot stat ISO for $url"); return undef }
+	return $cache->trackPath($key, $area, $n);
 }
 
 sub getNextTrack {
@@ -30,6 +43,7 @@ sub getNextTrack {
 	my ($iso, $area, $n) = $cache->parseUrl($url);
 	if (!$iso) { $log->error("cannot parse $url"); return $failCb->('PLUGIN_SACDPLAYER_EXTRACT_FAILED') }
 	my $key = $cache->keyFor($iso);
+	if (!defined $key) { $log->error("cannot stat ISO for $url"); return $failCb->('PLUGIN_SACDPLAYER_EXTRACT_FAILED') }
 	my $x   = Plugins::SACDPlayer::Registry->extractor;
 
 	if ($cache->trackState($key, $area, $n) eq 'ready') {
@@ -45,8 +59,24 @@ sub getNextTrack {
 	if ($client && $client->can('showBriefly')) {
 		$client->showBriefly({ line => [ Slim::Utils::Strings::string('PLUGIN_SACDPLAYER_PREPARING'), "$n / $total" ] }, { duration => 10 });
 	}
+	# Exactly one of the waiter and the deadline may call back: if the extractor never
+	# answers (crashed worker, wedged tick) the player must still be told, not left hanging.
+	my $done = 0;
+	my $timeout = Plugins::SACDPlayer::Registry->prefs->get('extract_timeout_s') || 600;
+	my $deadline;
+	$deadline = sub {
+		return if $done;
+		$done = 1;
+		$log->error("extraction deadline expired for $url");
+		$failCb->('PLUGIN_SACDPLAYER_EXTRACT_FAILED');
+	};
+	Slim::Utils::Timers::setTimer(undef, Time::HiRes::time() + $timeout + 30, $deadline);
+
 	$x->request($iso, $area, $n, 0, sub {
 		my ($ok, $payload) = @_;
+		return if $done;
+		$done = 1;
+		Slim::Utils::Timers::killTimers(undef, $deadline);
 		if ($ok) { $cache->touch($key); _refreshAudioInfo($url, $payload); $successCb->() }
 		else     { $failCb->('PLUGIN_SACDPLAYER_EXTRACT_FAILED') }
 	});
@@ -72,7 +102,7 @@ sub getMetadataFor {
 	my ($iso, $area, $n) = $cache->parseUrl($url);
 	return {} unless $iso;
 	my $key = $cache->keyFor($iso);
-	my $idx = $cache->loadIndex($key)
+	my $idx = (defined $key ? $cache->loadIndex($key) : undef)
 		or return { title => "Track $n", artist => '', album => '', duration => 0, sacd_state => 'absent' };
 	my ($a) = grep { $_->{area} eq $area } @{ $idx->{toc}{areas} || [] };
 	my ($t) = $a ? grep { $_->{number} == $n } @{ $a->{tracks} } : ();

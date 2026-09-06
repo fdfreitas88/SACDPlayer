@@ -1,4 +1,5 @@
 package Slim::Schema;
+# Stub: no database - updateOrCreate only records its arguments in @CREATED.
 use strict;
 our @CREATED;   # tests inspect this
 sub rs { bless {}, 'Slim::Schema::RSStub' }

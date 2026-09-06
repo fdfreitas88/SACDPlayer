@@ -53,6 +53,11 @@ sub request {
 	my ($self, $iso, $area, $n, $priority, $cb) = @_;
 	my $cache = $self->{cache};
 	my $key   = $cache->keyFor($iso);
+	unless (defined $key) {
+		$self->{log} && eval { $self->{log}->error("cannot stat ISO, refusing to extract: $iso") };
+		$cb->(0, "ISO not readable: $iso") if $cb;
+		return;
+	}
 	my $state = $cache->trackState($key, $area, $n);
 	if ($state eq 'ready') { $cb->(1, $cache->trackPath($key, $area, $n)) if $cb; return }
 	if (my $job = $self->_find($key, $area, $n)) {
@@ -70,7 +75,9 @@ sub request {
 sub requestAlbum {
 	my ($self, $iso, $area, $priority) = @_;
 	my $cache = $self->{cache};
-	my $idx = $cache->loadIndex($cache->keyFor($iso)) or return;
+	my $key = $cache->keyFor($iso);
+	return unless defined $key;
+	my $idx = $cache->loadIndex($key) or return;
 	my ($a) = grep { $_->{area} eq $area } @{ $idx->{toc}{areas} || [] };
 	return unless $a;
 	$self->request($iso, $area, $_->{number}, $priority, undef) for @{ $a->{tracks} };
@@ -91,11 +98,40 @@ sub cancelAlbum {
 		if ($c->{job}{key} eq $key && $c->{job}{area} eq $area) {
 			my $number = $c->{job}{number};
 			$c->{proc}->die if $c->{proc} && $c->{proc}->can('die');
-			eval { $c->{proc}->wait } if $c->{proc} && $c->{proc}->can('wait');
+			$self->_reap($c->{proc});
 			$self->_finish(0, 'cancelled');
 			$self->{cache}->setTrackState($key, $area, $number, 'absent');
 		}
 	}
+}
+
+# Reaps a finished/killed process. Proc::Background::wait returns the raw wait status, so the
+# real exit code comes from exit_code(); the fork-based test double only has wait().
+sub _reap {
+	my ($self, $proc) = @_;
+	return undef unless $proc && $proc->can('wait');
+	my $code = eval {
+		$proc->can('exit_code') ? do { $proc->wait; $proc->exit_code } : $proc->wait;
+	};
+	if ($@) {
+		$self->{log} && eval { $self->{log}->error("waiting for sacd_extract failed: $@") };
+		return undef;
+	}
+	return $code;
+}
+
+# Called from Plugin::shutdownPlugin: never leave a sacd_extract behind on server exit.
+sub shutdown {
+	my ($self) = @_;
+	if (my $c = $self->{current}) {
+		$c->{proc}->die if $c->{proc} && $c->{proc}->can('die');
+		$self->_reap($c->{proc});
+		$self->_finish(0, 'shutdown');
+	}
+	my @pending = @{ $self->{queue} };
+	$self->{queue} = [];
+	for my $j (@pending) { $_->(0, 'shutdown') for @{ $j->{waiters} } }
+	return 1;
 }
 
 sub _sort { my $s = shift; @{ $s->{queue} } = sort { $a->{priority} <=> $b->{priority} || $a->{seq} <=> $b->{seq} } @{ $s->{queue} } }
@@ -106,11 +142,12 @@ sub tick {
 		if ($c->{proc}->alive) {
 			if (Time::HiRes::time() - $c->{started} > $self->{timeout_s}) {
 				$c->{proc}->die if $c->{proc}->can('die');
-				eval { $c->{proc}->wait } if $c->{proc}->can('wait');
+				$self->_reap($c->{proc});
 				$self->_finish(0, "sacd_extract timed out after $self->{timeout_s}s");
 			}
 		} else {
-			my $code = $c->{proc}->wait;
+			my $code = $self->_reap($c->{proc});
+			$code = -1 unless defined $code;
 			if ($code == 0) { $self->_collect } else { $self->_finish(0, "sacd_extract failed with exit code $code") }
 		}
 		return 1;

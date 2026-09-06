@@ -46,6 +46,10 @@ sub _tick {
 	armTick() if $busy;
 }
 
-sub shutdownPlugin { Slim::Utils::Timers::killTimers(undef, \&_tick) }
+# Stop the extractor before the timers: otherwise a running sacd_extract outlives the server.
+sub shutdownPlugin {
+	eval { Plugins::SACDPlayer::Registry->extractor->shutdown; 1 } or $log->error("extractor shutdown failed: $@");
+	Slim::Utils::Timers::killTimers(undef, \&_tick);
+}
 
 1;
