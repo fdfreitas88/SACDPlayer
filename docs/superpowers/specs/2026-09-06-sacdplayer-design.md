@@ -19,7 +19,7 @@ Resultado esperado: ISOs num SMB aparecem na biblioteca como álbuns normais, to
 | Áreas | 2ch e mch viram álbuns separados, sufixos "(2ch)" e "(mch)"; mch toca só L/R |
 | Faixas DST no primeiro play | Extrair a faixa inteira antes de tocar, com aviso "preparando"; velocidade medida em spike |
 | UI | Verbos JSON-RPC + página de settings no LMS; Echo Classic integra depois (detect and degrade) |
-| Abordagem | Plugin LMS: tipo playlist estilo CUE para o scan + handler de protocolo `sacd://` subclasse de `Slim::Player::Protocols::File` |
+| Abordagem | Plugin LMS: tipo de áudio `sacd` cujo leitor de tags cria faixas virtuais (padrão do FLAC com cue embutido, `fec`) + handler de protocolo `sacd://` subclasse de `Slim::Player::Protocols::File` |
 
 ## 3. Arquitetura
 
@@ -28,19 +28,20 @@ Repositório `~/Desktop/Claude/LMS/SACDPlayer`, plugin `Plugins::SACDPlayer`, in
 ### 3.1 `Bin/darwin/sacd_extract`
 Binário x86_64 compilado no MacBook (arm64, Xcode) a partir do fork github.com/Sound-Linux-More/sacd-extract com `-arch x86_64`, sem dependências dinâmicas fora do sistema. Resolvido por `Slim::Utils::Misc::findbin` (o PluginManager adiciona `Bin/darwin` ao caminho de busca). Não vai ao git; o processo de release copia o binário.
 
-### 3.2 `Scanner.pm`
-- `custom-types.conf`: `sacd iso audio/x-sacd-iso playlist` e `sacd sacd: ? audio` (forma de esquema, como `cdplay:` no CDplayer).
-- No `init` do plugin: `$Slim::Formats::tagClasses{sacd} = 'Plugins::SACDPlayer::Scanner'`.
-- Subclasse de `Slim::Formats::Playlists::Base`; `read()` segue `Slim::Formats::Playlists::CUE` (`CUE.pm:640-720`): o ISO é gravado com `CONTENT_TYPE => 'cur'`, `AUDIO => 0`; cada trilha vira faixa virtual (`VIRTUAL => 1`) com URL `sacd://<caminho-do-iso>?area=2ch|mch&track=N`, título, artista, duração, número e álbum `<título> (2ch)` ou `<título> (mch)`.
-- Chave do ISO: hash curto de caminho + tamanho + mtime. Índice `index/<chave>.json` com o parse do `sacd_extract -P`; reaproveitado nos rescans, invalidado quando tamanho ou mtime mudam.
-- `sacd_extract -P` com timeout de 60 s; falha loga aviso e pula o ISO.
+### 3.2 `Format.pm` (leitor de tags do tipo `sacd`) e `Importer.pm`
+- `custom-types.conf`: `sacd iso audio/x-sacd-iso audio`. O tipo tem de ser **audio**: `Slim::Utils::Scanner::Local::new` (linhas 913-960) só lê tipos `playlist` dentro da pasta de playlists; cue sheets e áudio são lidos de qualquer lugar.
+- Registro: `Slim::Formats->init; $Slim::Formats::tagClasses{sacd} = 'Plugins::SACDPlayer::Format'` (o `init` reescreve o hash, por isso vem antes). Isso precisa acontecer **também no processo do scanner externo**, que só carrega plugins com `<importmodule>` no `install.xml` (`scanner.pl:275-284`, `PluginManager::load('import')`). Logo o `install.xml` declara `<module>Plugins::SACDPlayer::Plugin</module>` e `<importmodule>Plugins::SACDPlayer::Importer</importmodule>`; os dois chamam o mesmo registro.
+- `Format::getTag($isoPath)` segue `Slim::Formats::FLAC::getTag` (linhas 88-200): roda `sacd_extract -P` (ou lê o índice em cache), cria uma faixa virtual por trilha e por área com `Slim::Schema->rs('Track')->updateOrCreate({url, attributes, readTags => 0})`, `VIRTUAL => 1`, `CONTENT_TYPE => 'dsf'`, `SECS`, `TITLE`, `ARTIST`, `ALBUM => "<título> (2ch)"` ou `"(mch)"`, `TRACKNUM`, `AGE`, `FS`; e devolve para o próprio ISO `CT => 'fec'`, `AUDIO => 0`, `TITLE => <título do disco>`, o que o esconde das listagens e faz o scanner apagar as faixas filhas junto com ele (`Local.pm:895`).
+- URL da faixa virtual: `sacd://<caminho-do-iso-percent-escaped>/<2ch|mch>/<NN>.dsf`. Termina em `.dsf` para que `Slim::Music::Info::typeFromPath` infira `dsf` sem precisar de linha de esquema em `custom-types.conf`. O handler devolve `isRemote 0`, então `isRemoteURL` é falso e as faixas entram nos álbuns da biblioteca como locais.
+- Chave do ISO: 16 hex de MD5(caminho|tamanho|mtime). Índice `index/<chave>.json` com o parse do `-P`; reaproveitado nos rescans, invalidado quando tamanho ou mtime mudam.
+- `sacd_extract -P` com timeout de 60 s; falha loga aviso e devolve `{}` (ISO ignorado).
 
 ### 3.3 `ProtocolHandler.pm`
-- Subclasse de `Slim::Player::Protocols::File`, registrada com `Slim::Player::ProtocolHandlers->registerHandler('sacd', ...)`.
+- Subclasse de `Slim::Player::Protocols::File`, registrada com `Slim::Player::ProtocolHandlers->registerHandler('sacd', ...)` no `initPlugin` do servidor (o LMS repassa os handlers registrados ao scanner pela pref `registeredhandlers`).
 - `contentType` -> `dsf`; `isRemote` -> 0; `canSeek` -> 1 quando a faixa está em cache.
 - `getNextTrack`: consulta o Cache. Em cache: atualiza último acesso e libera. Ausente: enfileira a faixa (prioridade alta) e o resto do álbum (normal), mostra "Preparando faixa N de M" e aguarda por timer do LMS (`Slim::Utils::Timers`), sem bloquear. Timeout padrão 10 min, depois erro e próxima faixa. Pular de faixa durante a espera reordena a fila.
 - `pathFromFileURL`: devolve `<cache>/<chave>/<area>/<NN>.dsf`. Como o player recebe um DSF real em disco, aplica a regra nativa `dsf dsf * *` de `convert.conf` (capacidades `IFD`, comando `-`); nenhum `custom-convert.conf` é escrito.
-- Após a extração, a faixa virtual recebe `audio_size`, `audio_offset`, `samplerate`, `channels` e `block_alignment` lidos do DSF, para seek funcionar em `File::open`.
+- Após a extração, a faixa virtual recebe `SIZE`, `OFFSET`, `SECS`, `RATE`, `SAMPLESIZE`, `CHANNELS` e `BLOCKALIGN` de `Slim::Formats->readTags(<dsf>)` (mapeados pelo Schema para `audio_size`, `audio_offset`, `secs`, `samplerate`, `samplesize`, `channels`, `block_alignment`), para `File::open` e o seek funcionarem como num DSF comum. Títulos e artista não são sobrescritos.
 
 ### 3.4 `Cache.pm`
 - Layout `<cache>/<chave>/<area>/<NN>.dsf`, temporários em `<cache>/tmp/`, índice `index/<chave>.json` com tamanho, último acesso e estado por faixa (`pendente`, `extraindo`, `pronta`, `falhou` + mensagem).
@@ -80,4 +81,4 @@ Os números voltam para este spec.
 
 ## 8. Referências de código (LMS 9.1.1 no musicplayer)
 Core em `/Applications/Lyrion Music Server.app/Contents/MacOS/Lyrion Music Server.app/Contents/Resources/server`:
-`Slim/Music/Info.pm:94-146` (custom-types.conf), `Slim/Formats.pm:43-113` (tagClasses), `Slim/Formats/Playlists/CUE.pm:531,640-720,820-845`, `Slim/Utils/Scanner/Local.pm:913-950,1243-1259`, `Slim/Player/Protocols/File.pm:27-63,245,299,310`, `Slim/Player/Protocols/LocalFile.pm`, `Slim/Utils/Misc.pm:107`, `Slim/Utils/PluginManager.pm:340-363`, `convert.conf:389`. Plugins: `CDplayer/CDPLAY.pm`, `CDplayer/custom-types.conf`, `AppleSqueezerIntel/Commands.pm:12-42`, `DSDPlayer/PlayerSettings.pm`.
+`Slim/Music/Info.pm:94-146` (custom-types.conf), `Slim/Music/Info.pm:1439-1470` (typeFromPath), `Slim/Formats.pm:43-113,153-193` (tagClasses, readTags), `Slim/Formats/FLAC.pm:88-200` (getTag com cue embutido, modelo do Format.pm), `Slim/Formats/Playlists/CUE.pm:631-720`, `Slim/Utils/Scanner/Local.pm:895,913-960`, `scanner.pl:275-284`, `Slim/Utils/PluginManager.pm:190-240,387-400`, `Slim/Music/Import.pm:105-125` (registeredhandlers), `Slim/Player/Protocols/File.pm:27-63,245,299,310`, `Slim/Player/Protocols/LocalFile.pm`, `Slim/Utils/Misc.pm:107`, `Slim/Utils/PluginManager.pm:340-363`, `convert.conf:389`. Plugins: `CDplayer/CDPLAY.pm`, `CDplayer/custom-types.conf`, `AppleSqueezerIntel/Commands.pm:12-42`, `DSDPlayer/PlayerSettings.pm`.
