@@ -1,0 +1,14 @@
+#!/bin/bash
+# Mimics sacd_extract: -2|-m -s -c -t N -i ISO -o DIR. Writes DIR/Album/Stereo/NN - Title.dsf with N*100 bytes.
+# Env FAKE_FAIL=1 exits 3 without output; FAKE_SLEEP=n sleeps before writing.
+area=Stereo; n=1; out=.
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -2) area=Stereo;; -m) area=Multich;; -t) n="$2"; shift;; -o) out="$2"; shift;; -i) iso="$2"; shift;;
+  esac; shift
+done
+[ "${FAKE_FAIL:-0}" = 1 ] && { echo "fake failure" >&2; exit 3; }
+sleep "${FAKE_SLEEP:-0}"
+d="$out/Album/$area"; mkdir -p "$d"
+head -c $((n * 100)) /dev/zero > "$d/$(printf '%02d' "$n") - Title.dsf"
+echo "Processed 1 audioframes"
