@@ -40,4 +40,24 @@ is($r->{r}{success}, 1, 'evict ok'); is(scalar @{ Plugins::SACDPlayer::Registry-
 
 $r = FakeReq->new(_target => 'nope'); Plugins::SACDPlayer::Commands::status($r);
 is($r->{r}{success}, 0, 'bad target'); ok($r->{r}{error}, 'error text');
+
+# prepareTarget/evictTarget shared logic, with binary guard
+my $realBin = $Slim::Utils::Misc::FINDBIN;
+$Slim::Utils::Misc::FINDBIN = '/nonexistent/path/that/does/not/exist';
+Plugins::SACDPlayer::Registry->_resetBinaryForTests;
+my ($ok, $err) = Plugins::SACDPlayer::Commands::prepareTarget("$key/2ch");
+is($ok, 0, 'prepareTarget fails without binary');
+is($err, 'sacd_extract missing', 'prepareTarget error text');
+is(scalar @{ Plugins::SACDPlayer::Registry->extractor->queued }, 0, 'nothing queued without binary');
+$Slim::Utils::Misc::FINDBIN = $realBin;
+Plugins::SACDPlayer::Registry->_resetBinaryForTests;
+
+($ok, $err) = Plugins::SACDPlayer::Commands::prepareTarget("$key/2ch");
+is($ok, 1, 'prepareTarget ok with binary');
+is(scalar @{ Plugins::SACDPlayer::Registry->extractor->queued }, 1, 'queued via prepareTarget');
+
+($ok, $err) = Plugins::SACDPlayer::Commands::evictTarget("$key/2ch");
+is($ok, 1, 'evictTarget ok');
+is(scalar @{ Plugins::SACDPlayer::Registry->extractor->queued }, 0, 'queue cleared via evictTarget');
+
 done_testing;

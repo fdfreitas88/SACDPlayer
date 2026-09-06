@@ -67,4 +67,18 @@ delete $ENV{FAKE_SLEEP};
 is($cache->trackState($key, '2ch', 3), 'failed', 'still failed');
 $x->request($iso, '2ch', 3, 2, sub {});
 is($cache->trackState($key, '2ch', 3), 'pending', 'request re-queues a failed track');
+
+# cancelAlbum while the album is actively extracting
+$ENV{FAKE_SLEEP} = 3;
+$cache->setTrackState($key, '2ch', 3, 'absent');
+my $cancelled; $x->request($iso, '2ch', 3, 0, sub { $cancelled = [@_] });
+$x->tick;
+ok($x->busy, 'busy while extracting');
+$x->cancelAlbum($key, '2ch');
+ok(!$x->busy, 'not busy after cancel');
+ok(!-d $cache->tmpDir($key, '2ch', 3), 'tmp dir removed after cancel');
+is($cache->trackState($key, '2ch', 3), 'absent', 'track state absent after cancel');
+is_deeply($cancelled, [0, 'cancelled'], 'waiter notified of cancellation');
+delete $ENV{FAKE_SLEEP};
+
 done_testing;

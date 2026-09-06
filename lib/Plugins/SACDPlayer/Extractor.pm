@@ -86,6 +86,16 @@ sub cancelAlbum {
 		} else { push @keep, $j }
 	}
 	$self->{queue} = \@keep;
+
+	if (my $c = $self->{current}) {
+		if ($c->{job}{key} eq $key && $c->{job}{area} eq $area) {
+			my $number = $c->{job}{number};
+			$c->{proc}->die if $c->{proc} && $c->{proc}->can('die');
+			eval { $c->{proc}->wait } if $c->{proc} && $c->{proc}->can('wait');
+			$self->_finish(0, 'cancelled');
+			$self->{cache}->setTrackState($key, $area, $number, 'absent');
+		}
+	}
 }
 
 sub _sort { my $s = shift; @{ $s->{queue} } = sort { $a->{priority} <=> $b->{priority} || $a->{seq} <=> $b->{seq} } @{ $s->{queue} } }

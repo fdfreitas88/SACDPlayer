@@ -72,20 +72,36 @@ sub status {
 	$r->setStatusDone;
 }
 
-sub prepare {
-	my ($r) = @_;
-	my ($key, $area, $iso) = resolveTarget($r->getParam('_target')) or return _fail($r, 'unknown target');
-	return _fail($r, 'sacd_extract missing') unless Plugins::SACDPlayer::Registry->binary;
+# Shared prepare/evict logic used by both the JSON-RPC handlers and the settings page.
+# Returns (1) on success or (0, 'error text') on failure.
+sub prepareTarget {
+	my ($target) = @_;
+	my ($key, $area, $iso) = resolveTarget($target) or return (0, 'unknown target');
+	return (0, 'sacd_extract missing') unless Plugins::SACDPlayer::Registry->binary;
 	Plugins::SACDPlayer::Registry->extractor->requestAlbum($iso, $area, 2);
 	Plugins::SACDPlayer::Plugin::armTick() if defined &Plugins::SACDPlayer::Plugin::armTick;
+	return (1);
+}
+
+sub evictTarget {
+	my ($target) = @_;
+	my ($key, $area) = resolveTarget($target) or return (0, 'unknown target');
+	Plugins::SACDPlayer::Registry->extractor->cancelAlbum($key, $area);
+	Plugins::SACDPlayer::Registry->cache->evictAlbum($key, $area);
+	return (1);
+}
+
+sub prepare {
+	my ($r) = @_;
+	my ($ok, $err) = prepareTarget($r->getParam('_target'));
+	return _fail($r, $err) unless $ok;
 	$r->addResult('success', 1); $r->setStatusDone;
 }
 
 sub evict {
 	my ($r) = @_;
-	my ($key, $area) = resolveTarget($r->getParam('_target')) or return _fail($r, 'unknown target');
-	Plugins::SACDPlayer::Registry->extractor->cancelAlbum($key, $area);
-	Plugins::SACDPlayer::Registry->cache->evictAlbum($key, $area);
+	my ($ok, $err) = evictTarget($r->getParam('_target'));
+	return _fail($r, $err) unless $ok;
 	$r->addResult('success', 1); $r->setStatusDone;
 }
 

@@ -43,6 +43,7 @@ sub binary {
 	return $binary if defined $binary;
 	require Slim::Utils::Misc;
 	$binary = Slim::Utils::Misc::findbin('sacd_extract') || '';
+	$binary = '' unless $binary && -x $binary;
 	$log->warn('sacd_extract not found via findbin') unless $binary;
 	return $binary;
 }

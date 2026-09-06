@@ -14,7 +14,7 @@ sub handler {
 	my ($class, $client, $params) = @_;
 	my $prefs = Plugins::SACDPlayer::Registry->prefs;
 	my $message = '';
-	if ($params->{saveSettings}) {
+	if ($params->{saveSettings} && !$params->{prepare} && !$params->{evict}) {
 		my $dir = $params->{cache_dir} || '';
 		if ($dir ne '' && !-d $dir) { $message = "Folder does not exist: $dir" }
 		else {
@@ -28,18 +28,12 @@ sub handler {
 	}
 
 	if (my $t = $params->{prepare}) {
-		my ($key, $area, $iso) = Plugins::SACDPlayer::Commands::resolveTarget($t);
-		if ($key) {
-			Plugins::SACDPlayer::Registry->extractor->requestAlbum($iso, $area, 2);
-			Plugins::SACDPlayer::Plugin::armTick() if defined &Plugins::SACDPlayer::Plugin::armTick;
-		}
+		my ($ok, $err) = Plugins::SACDPlayer::Commands::prepareTarget($t);
+		$message = $err unless $ok;
 	}
 	if (my $t = $params->{evict}) {
-		my ($key, $area) = Plugins::SACDPlayer::Commands::resolveTarget($t);
-		if ($key) {
-			Plugins::SACDPlayer::Registry->extractor->cancelAlbum($key, $area);
-			Plugins::SACDPlayer::Registry->cache->evictAlbum($key, $area);
-		}
+		my ($ok, $err) = Plugins::SACDPlayer::Commands::evictTarget($t);
+		$message = $err unless $ok;
 	}
 
 	my $cache = Plugins::SACDPlayer::Registry->cache;
