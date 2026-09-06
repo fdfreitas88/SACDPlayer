@@ -96,6 +96,7 @@ sub tick {
 		if ($c->{proc}->alive) {
 			if (Time::HiRes::time() - $c->{started} > $self->{timeout_s}) {
 				$c->{proc}->die if $c->{proc}->can('die');
+				eval { $c->{proc}->wait } if $c->{proc}->can('wait');
 				$self->_finish(0, "sacd_extract timed out after $self->{timeout_s}s");
 			}
 		} else {
@@ -128,7 +129,12 @@ sub _collect {
 	my $c = $self->{current};
 	my @dsf;
 	File::Find::find(sub { push @dsf, $File::Find::name if /\.dsf$/i && -f $_ }, $c->{tmp});
-	return $self->_finish(0, 'sacd_extract produced no DSF file') unless @dsf == 1;
+	if (@dsf != 1) {
+		my @found;
+		File::Find::find(sub { push @found, $File::Find::name if -f $_ }, $c->{tmp});
+		$self->{log} && eval { $self->{log}->warn("sacd_extract produced no DSF file; tmp contents: " . (@found ? join(', ', @found) : '(empty)')) };
+		return $self->_finish(0, 'sacd_extract produced no DSF file');
+	}
 	my $job  = $c->{job};
 	my $dest = $self->{cache}->trackPath($job->{key}, $job->{area}, $job->{number});
 	make_path((File::Spec->splitpath($dest))[1]);

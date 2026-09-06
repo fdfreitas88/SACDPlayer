@@ -5,10 +5,11 @@ use Slim::Utils::Log;
 use_ok('Plugins::SACDPlayer::Cache'); use_ok('Plugins::SACDPlayer::Extractor');
 
 # fork-based spawn satisfying the alive/wait contract
-package FakeProc { sub new { my ($c, $pid) = @_; bless { pid => $pid }, $c }
+package FakeProc { our $WAITED_AFTER_DIE = 0;
+  sub new { my ($c, $pid) = @_; bless { pid => $pid }, $c }
   sub alive { my $s = shift; return 0 if defined $s->{code}; my $r = waitpid($s->{pid}, 1); if ($r == $s->{pid}) { $s->{code} = $? >> 8; return 0 } 1 }
-  sub wait  { my $s = shift; $s->alive; waitpid($s->{pid}, 0) unless defined $s->{code}; $s->{code} //= $? >> 8 }
-  sub die   { my $s = shift; kill 'KILL', $s->{pid}; $s->{code} = 137 } }
+  sub wait  { my $s = shift; $s->alive; waitpid($s->{pid}, 0) unless defined $s->{code}; $s->{code} //= $? >> 8; $WAITED_AFTER_DIE++ if $s->{died}; return $s->{code} }
+  sub die   { my $s = shift; kill 'KILL', $s->{pid}; $s->{code} = 137; $s->{died} = 1 } }
 package main;
 my $spawn = sub { my $argv = shift; my $pid = fork; if (!$pid) { exec @$argv or exit 127 } FakeProc->new($pid) };
 
@@ -59,6 +60,7 @@ $cache->setTrackState($key, '2ch', 3, 'absent');
 my $to; $slow->request($iso, '2ch', 3, 0, sub { $to = [@_] });
 $spins = 0; while ($slow->tick && $spins++ < 200) { select undef, undef, undef, 0.05 }
 ok(!$to->[0], 'timeout reported'); like($to->[1], qr/timed out/, 'timeout message');
+ok($FakeProc::WAITED_AFTER_DIE, 'timed-out process was reaped via wait after die');
 delete $ENV{FAKE_SLEEP};
 
 # failed tracks are not retried automatically, but a new request clears the failure
