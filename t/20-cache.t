@@ -65,4 +65,11 @@ $c->recover;
 is($c->trackState($key2, '2ch', 2), 'pending', 'recovered to pending');
 ok(!-d $c->tmpDir($key2, '2ch', 2), 'tmp removed');
 ok($c->freeBytes > 0, 'df works');
+
+# setTrackState must never fabricate a bare index for an unknown key
+my $unknown_key = 'deadbeefdeadbeef';
+$c->setTrackState($unknown_key, '2ch', 1, 'pending');
+ok(!-f $c->indexPath($unknown_key), 'no index file created for unknown key');
+is($c->trackState($unknown_key, '2ch', 1), 'absent', 'unknown key still absent');
+
 done_testing;

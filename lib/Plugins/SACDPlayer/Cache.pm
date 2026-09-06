@@ -70,9 +70,17 @@ sub loadIndex {
 sub saveIndex {
 	my ($self, $key, $idx) = @_;
 	my $p = $self->indexPath($key);
-	open my $fh, '>:raw', "$p.tmp" or die "cannot write $p.tmp: $!";
-	print $fh $json->encode($idx); close $fh;
-	rename "$p.tmp", $p or die "rename failed: $!";
+	eval {
+		open my $fh, '>:raw', "$p.tmp" or die "cannot write $p.tmp: $!";
+		print $fh $json->encode($idx) or die "write failed: $!";
+		close $fh or die "close failed: $!";
+		rename "$p.tmp", $p or die "rename failed: $!";
+		1;
+	} or do {
+		my $err = $@ || 'unknown error';
+		unlink "$p.tmp";
+		die $err;
+	};
 	return $idx;
 }
 
@@ -81,7 +89,7 @@ sub ensureIndex {
 	my $key = $self->keyFor($iso);
 	my $i   = $self->isoInfo($iso);
 	my $idx = $self->loadIndex($key);
-	if (!$idx || $idx->{size} != $i->{size} || $idx->{mtime} != $i->{mtime}) {
+	if (!$idx || !defined $idx->{size} || !defined $idx->{mtime} || $idx->{size} != $i->{size} || $idx->{mtime} != $i->{mtime}) {
 		$idx = { iso => $iso, size => $i->{size}, mtime => $i->{mtime}, toc => $toc, last_access => time, tracks => {} };
 	} elsif ($toc) {
 		$idx->{toc} = $toc;
@@ -99,7 +107,11 @@ sub trackState {
 
 sub setTrackState {
 	my ($self, $key, $area, $n, $state, %extra) = @_;
-	my $idx = $self->loadIndex($key) || { tracks => {}, last_access => time };
+	my $idx = $self->loadIndex($key);
+	unless ($idx) {
+		$self->{log}->warn("setTrackState: no index for key $key, ignoring") if $self->{log} && $self->{log}->can('warn');
+		return;
+	}
 	my $slot = _slot($area, $n);
 	$idx->{tracks}{$slot} = { state => $state, bytes => $extra{bytes} // ($idx->{tracks}{$slot}{bytes} // 0), error => $extra{error} };
 	delete $idx->{tracks}{$slot} if $state eq 'absent';
