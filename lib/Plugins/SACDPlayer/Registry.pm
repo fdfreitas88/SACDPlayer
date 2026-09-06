@@ -24,6 +24,30 @@ sub prefs {
 
 sub cacheDir { $_[0]->prefs->get('cache_dir') }
 
+my ($cache, $binary);
+sub cache {
+	my $class = shift;
+	return $cache if $cache;
+	require Plugins::SACDPlayer::Cache;
+	my $p = $class->prefs;
+	$cache = Plugins::SACDPlayer::Cache->new(
+		dir            => $p->get('cache_dir'),
+		cap_bytes      => $p->get('cache_cap_gb') * 1024**3,
+		min_free_bytes => $p->get('min_free_gb') * 1024**3,
+		log            => $log,
+	);
+	return $cache;
+}
+sub resetCache { undef $cache }
+sub binary {
+	return $binary if defined $binary;
+	require Slim::Utils::Misc;
+	$binary = Slim::Utils::Misc::findbin('sacd_extract') || '';
+	$log->warn('sacd_extract not found via findbin') unless $binary;
+	return $binary;
+}
+sub _resetBinaryForTests { undef $binary }
+
 sub registerTagClass {
 	return if $tagClassRegistered++;
 	require Slim::Formats;
