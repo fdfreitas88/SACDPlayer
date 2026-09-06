@@ -1,0 +1,165 @@
+
+sacd_extract client NA
+
+Enhanced by euflo ....starting!
+
+Current (working) directory (for the app and 'sacd_extract.cfg' file): /Users/musicplayer
+
+Disc Information:
+	Version:  1.20
+	Creation date: 2012-11-06
+	Disc Catalog Number: 
+	Locale: en, Code character set:[1], ISO646-JP
+	Title: Greatest Hits
+	Artist: Queen
+	Publisher: Queen Productions Ltd
+	Copyright: Queen Productions Ltd
+
+Album Information:
+	Album Catalog Number: 
+	Sequence Number: 1
+	Set Size: 1
+	Title: Greatest Hits
+	Artist: Queen
+	Publisher: Queen Productions Ltd
+	Copyright: Queen Productions Ltd
+
+Area count: 1
+	Area Information [0]:
+
+	Version:  1.20
+	Track Count: 18
+	Total play time: 63:20:32 [mins:secs:frames]
+	Speaker config: 2 Channel
+	Track list [0]:
+		Title[0]: Bohemian Rhapsody
+		Performer[0]: Queen
+		Track_Start_Time_Code: 00:02:00 [mins:secs:frames]
+		Duration: 05:55:15 [mins:secs:frames]
+
+		Title[1]: Another One Bites The Dust
+		Performer[1]: Queen
+		Track_Start_Time_Code: 05:57:15 [mins:secs:frames]
+		Duration: 03:35:25 [mins:secs:frames]
+
+		Title[2]: Killer Queen
+		Performer[2]: Queen
+		Track_Start_Time_Code: 09:32:40 [mins:secs:frames]
+		Duration: 03:01:01 [mins:secs:frames]
+
+		Title[3]: Fat Bottomed Girls (Single Version)
+		Performer[3]: Queen
+		Track_Start_Time_Code: 12:33:41 [mins:secs:frames]
+		Duration: 03:23:12 [mins:secs:frames]
+
+		Title[4]: Bicycle Race
+		Performer[4]: Queen
+		Track_Start_Time_Code: 15:56:53 [mins:secs:frames]
+		Duration: 03:01:18 [mins:secs:frames]
+
+		Title[5]: You're My Best Friend
+		Performer[5]: Queen
+		Track_Start_Time_Code: 18:57:71 [mins:secs:frames]
+		Duration: 02:52:66 [mins:secs:frames]
+
+		Title[6]: Don't Stop Me Now
+		Performer[6]: Queen
+		Track_Start_Time_Code: 21:50:62 [mins:secs:frames]
+		Duration: 03:30:26 [mins:secs:frames]
+
+		Title[7]: Save Me
+		Performer[7]: Queen
+		Track_Start_Time_Code: 25:21:13 [mins:secs:frames]
+		Duration: 03:48:04 [mins:secs:frames]
+
+		Title[8]: Crazy Little Thing Called Love
+		Performer[8]: Queen
+		Track_Start_Time_Code: 29:09:17 [mins:secs:frames]
+		Duration: 02:44:54 [mins:secs:frames]
+
+		Title[9]: Somebody To Love
+		Performer[9]: Queen
+		Track_Start_Time_Code: 31:53:71 [mins:secs:frames]
+		Duration: 04:57:15 [mins:secs:frames]
+
+		Title[10]: Now I'm Here
+		Performer[10]: Queen
+		Track_Start_Time_Code: 36:51:11 [mins:secs:frames]
+		Duration: 04:14:63 [mins:secs:frames]
+
+		Title[11]: Good Old-Fashioned Lover Boy
+		Performer[11]: Queen
+		Track_Start_Time_Code: 41:05:74 [mins:secs:frames]
+		Duration: 02:53:14 [mins:secs:frames]
+
+		Title[12]: Play The Game
+		Performer[12]: Queen
+		Track_Start_Time_Code: 43:59:13 [mins:secs:frames]
+		Duration: 03:33:29 [mins:secs:frames]
+
+		Title[13]: Flash (Single Version)
+		Performer[13]: Queen
+		Track_Start_Time_Code: 47:32:42 [mins:secs:frames]
+		Duration: 02:48:35 [mins:secs:frames]
+
+		Title[14]: Seven Seas Of Rhye
+		Performer[14]: Queen
+		Track_Start_Time_Code: 50:21:02 [mins:secs:frames]
+		Duration: 02:47:49 [mins:secs:frames]
+
+		Title[15]: We Will Rock You
+		Performer[15]: Queen
+		Track_Start_Time_Code: 53:08:51 [mins:secs:frames]
+		Duration: 02:02:06 [mins:secs:frames]
+
+		Title[16]: We Are The Champions
+		Performer[16]: Queen
+		Track_Start_Time_Code: 55:10:57 [mins:secs:frames]
+		Duration: 03:03:09 [mins:secs:frames]
+
+		Title[17]: Teo Torriatte (Let Us Cling Together) (HD Mix)
+		Performer[17]: Queen
+		Track_Start_Time_Code: 58:13:66 [mins:secs:frames]
+		Duration: 05:06:41 [mins:secs:frames]
+
+	ISRC Track [0]:
+	  Country: GB, Owner: UM7, Year: 10, Designation: 29604
+	ISRC Track [1]:
+	  Country: GB, Owner: UM7, Year: 10, Designation: 29605
+	ISRC Track [2]:
+	  Country: GB, Owner: UM7, Year: 10, Designation: 29606
+	ISRC Track [3]:
+	  Country: GB, Owner: UM7, Year: 10, Designation: 29607
+	ISRC Track [4]:
+	  Country: GB, Owner: UM7, Year: 10, Designation: 29608
+	ISRC Track [5]:
+	  Country: GB, Owner: UM7, Year: 10, Designation: 29609
+	ISRC Track [6]:
+	  Country: GB, Owner: UM7, Year: 10, Designation: 29610
+	ISRC Track [7]:
+	  Country: GB, Owner: UM7, Year: 10, Designation: 29611
+	ISRC Track [8]:
+	  Country: GB, Owner: UM7, Year: 10, Designation: 29612
+	ISRC Track [9]:
+	  Country: GB, Owner: UM7, Year: 10, Designation: 29613
+	ISRC Track [10]:
+	  Country: GB, Owner: UM7, Year: 10, Designation: 29620
+	ISRC Track [11]:
+	  Country: GB, Owner: UM7, Year: 10, Designation: 29614
+	ISRC Track [12]:
+	  Country: GB, Owner: UM7, Year: 10, Designation: 29615
+	ISRC Track [13]:
+	  Country: GB, Owner: UM7, Year: 10, Designation: 29616
+	ISRC Track [14]:
+	  Country: GB, Owner: UM7, Year: 10, Designation: 29617
+	ISRC Track [15]:
+	  Country: GB, Owner: UM7, Year: 10, Designation: 29618
+	ISRC Track [16]:
+	  Country: GB, Owner: UM7, Year: 10, Designation: 29619
+	ISRC Track [17]:
+	  Country: GB, Owner: UM7, Year: 10, Designation: 29978
+
+The size of sacd is ok (sectors=1330854). Size is: 2725588992 bytes, 2.726 GB (gigabyte) 
+
+Program terminates!
+
