@@ -8,6 +8,7 @@ if [ ! -d "$SRC" ]; then
   git clone --depth 1 https://github.com/Sound-Linux-More/sacd-extract.git "$SRC"
 fi
 cmake -S "$SRC" -B "$SRC/build-x86_64" \
+  -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
   -DCMAKE_OSX_ARCHITECTURES=x86_64 \
   -DCMAKE_OSX_DEPLOYMENT_TARGET=10.13 \
   -DCMAKE_BUILD_TYPE=Release
