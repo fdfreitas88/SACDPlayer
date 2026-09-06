@@ -60,4 +60,20 @@ is($e2, 'PLUGIN_SACDPLAYER_EXTRACT_FAILED', 'unparseable url fails cleanly');
 
 my $meta = Plugins::SACDPlayer::ProtocolHandler->getMetadataFor($client, $url);
 is($meta->{album}, 'T (2ch)', 'metadata album'); is($meta->{sacd_state}, 'ready', 'metadata state');
+
+# unknown ISO url: no index exists, still return full metadata shape
+my $unknownUrl = $cache->trackUrl(File::Spec->catfile($dir, 'Nope.iso'), '2ch', 3);
+my $meta2 = Plugins::SACDPlayer::ProtocolHandler->getMetadataFor($client, $unknownUrl);
+is_deeply($meta2, { title => 'Track 3', artist => '', album => '', duration => 0, sacd_state => 'absent' }, 'full metadata shape without index');
+
+# _tick survives extractor exceptions and re-arms while work remains queued
+$x->request($iso, '2ch', 1, 0, sub {});
+@Slim::Utils::Timers::T = ();
+{
+	no warnings 'redefine';
+	local *Plugins::SACDPlayer::Extractor::tick = sub { die "boom\n" };
+	Plugins::SACDPlayer::Plugin::_tick();
+}
+ok(scalar @Slim::Utils::Timers::T, 'tick re-armed after extractor exception with queued work');
+
 done_testing;

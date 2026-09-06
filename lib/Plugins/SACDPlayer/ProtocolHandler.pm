@@ -72,7 +72,8 @@ sub getMetadataFor {
 	my ($iso, $area, $n) = $cache->parseUrl($url);
 	return {} unless $iso;
 	my $key = $cache->keyFor($iso);
-	my $idx = $cache->loadIndex($key) or return { sacd_state => 'absent' };
+	my $idx = $cache->loadIndex($key)
+		or return { title => "Track $n", artist => '', album => '', duration => 0, sacd_state => 'absent' };
 	my ($a) = grep { $_->{area} eq $area } @{ $idx->{toc}{areas} || [] };
 	my ($t) = $a ? grep { $_->{number} == $n } @{ $a->{tracks} } : ();
 	return {

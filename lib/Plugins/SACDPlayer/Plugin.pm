@@ -37,8 +37,12 @@ sub armTick {
 
 sub _tick {
 	$tickArmed = 0;
-	my $busy = eval { Plugins::SACDPlayer::Registry->extractor->tick };
-	$log->error("tick failed: $@") if $@;
+	my $x = Plugins::SACDPlayer::Registry->extractor;
+	my $busy = eval { $x->tick };
+	if ($@) {
+		$log->error("tick failed: $@");
+		$busy = $x->busy || @{ $x->queued };
+	}
 	armTick() if $busy;
 }
 
