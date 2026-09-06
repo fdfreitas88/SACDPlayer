@@ -1,0 +1,5 @@
+Bin/darwin/sacd_extract
+build/
+*.dsf
+*.iso
+.DS_Store
