@@ -1,0 +1,29 @@
+[% PROCESS settings/header.html %]
+
+[% IF message %]<div class="success">[% message | html %]</div>[% END %]
+[% IF NOT binary %]<div style="color:#b00020">[% "PLUGIN_SACDPLAYER_MISSING_BINARY" | string %]</div>[% END %]
+[% IF low_disk %]<div style="color:#b00020">[% "PLUGIN_SACDPLAYER_DISK_LOW" | string %]</div>[% END %]
+<div style="color:#555;margin:6px 0">[% "PLUGIN_SACDPLAYER_MCH_NOTE" | string %]</div>
+
+[% WRAPPER setting title="PLUGIN_SACDPLAYER_CACHE_DIR" desc="PLUGIN_SACDPLAYER_CACHE_DIR_DESC" %]
+	<input class="stdedit" type="text" name="cache_dir" size="60" value="[% prefs.cache_dir | html %]">
+[% END %]
+[% WRAPPER setting title="PLUGIN_SACDPLAYER_CACHE_CAP" desc="PLUGIN_SACDPLAYER_CACHE_CAP_DESC" %]
+	<input class="stdedit" type="text" name="cache_cap_gb" size="6" value="[% prefs.cache_cap_gb %]">
+	&nbsp; in use [% usage_gb %] GB, free on disk [% free_gb %] GB[% IF busy %], extracting ([% queued %] queued)[% END %]
+[% END %]
+[% WRAPPER setting title="PLUGIN_SACDPLAYER_TIMEOUT" desc="PLUGIN_SACDPLAYER_TIMEOUT_DESC" %]
+	<input class="stdedit" type="text" name="extract_timeout_s" size="6" value="[% prefs.extract_timeout_s %]">
+[% END %]
+
+[% WRAPPER setting title="Cached albums" desc="" %]
+	<table cellpadding="3">
+	[% FOREACH a IN albums %]
+		<tr><td>[% a.title | html %]</td><td>[% a.gb %] GB</td><td>[% a.when %]</td>
+		<td><button type="submit" name="prepare" value="[% a.key %]/[% a.area %]">[% "PLUGIN_SACDPLAYER_PREPARE" | string %]</button>
+		<button type="submit" name="evict" value="[% a.key %]/[% a.area %]">[% "PLUGIN_SACDPLAYER_EVICT" | string %]</button></td></tr>
+	[% END %]
+	</table>
+[% END %]
+
+[% PROCESS settings/footer.html %]
