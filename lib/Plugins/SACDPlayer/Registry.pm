@@ -48,6 +48,18 @@ sub binary {
 }
 sub _resetBinaryForTests { undef $binary }
 
+my $extractor;
+sub extractor {
+	my ($class, %opt) = @_;
+	return $extractor if $extractor && !%opt;
+	require Plugins::SACDPlayer::Extractor;
+	$extractor = Plugins::SACDPlayer::Extractor->new(
+		cache => $class->cache, binary => $class->binary, timeout_s => $class->prefs->get('extract_timeout_s'), log => $log,
+		($opt{spawn} ? (spawn => $opt{spawn}) : ()),
+	);
+	return $extractor;
+}
+
 sub registerTagClass {
 	return if $tagClassRegistered++;
 	require Slim::Formats;
