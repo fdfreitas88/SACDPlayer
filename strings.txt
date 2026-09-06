@@ -1,0 +1,59 @@
+PLUGIN_SACDPLAYER
+	EN	SACD Player
+	PT	SACD Player
+
+PLUGIN_SACDPLAYER_DESC
+	EN	Plays SACD ISO images through a local DSF cache (stereo and multichannel areas as separate albums).
+	PT	Toca imagens SACD ISO por um cache local de DSF (áreas estéreo e multicanal como álbuns separados).
+
+PLUGIN_SACDPLAYER_PREPARING
+	EN	Preparing SACD track
+	PT	Preparando faixa SACD
+
+PLUGIN_SACDPLAYER_EXTRACT_FAILED
+	EN	SACD extraction failed
+	PT	Falha na extração do SACD
+
+PLUGIN_SACDPLAYER_CACHE_DIR
+	EN	Cache folder
+	PT	Pasta do cache
+
+PLUGIN_SACDPLAYER_CACHE_DIR_DESC
+	EN	Local folder where extracted DSF files are kept. Use the internal disk, not the network share.
+	PT	Pasta local onde os DSF extraídos ficam. Use o disco interno, não o compartilhamento de rede.
+
+PLUGIN_SACDPLAYER_CACHE_CAP
+	EN	Cache size limit (GB)
+	PT	Limite do cache (GB)
+
+PLUGIN_SACDPLAYER_CACHE_CAP_DESC
+	EN	When the cache exceeds this size, the least recently played albums are removed.
+	PT	Ao ultrapassar este tamanho, os álbuns tocados há mais tempo são removidos.
+
+PLUGIN_SACDPLAYER_TIMEOUT
+	EN	Extraction timeout (seconds)
+	PT	Tempo limite da extração (segundos)
+
+PLUGIN_SACDPLAYER_TIMEOUT_DESC
+	EN	A track still extracting after this time is marked failed and playback skips to the next one.
+	PT	Uma faixa que ainda estiver extraindo após este tempo é marcada como falha e a reprodução pula para a próxima.
+
+PLUGIN_SACDPLAYER_MISSING_BINARY
+	EN	sacd_extract binary not found in the plugin Bin folder. ISO files will not be scanned.
+	PT	Binário sacd_extract não encontrado na pasta Bin do plugin. Os ISO não serão lidos.
+
+PLUGIN_SACDPLAYER_MCH_NOTE
+	EN	Multichannel albums play only the front left and right channels.
+	PT	Álbuns multicanal tocam apenas os canais frontais esquerdo e direito.
+
+PLUGIN_SACDPLAYER_PREPARE
+	EN	Prepare
+	PT	Preparar
+
+PLUGIN_SACDPLAYER_EVICT
+	EN	Remove from cache
+	PT	Remover do cache
+
+PLUGIN_SACDPLAYER_DISK_LOW
+	EN	Free disk space is below the minimum; extraction is paused.
+	PT	Espaço livre em disco abaixo do mínimo; a extração está pausada.

@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<extension>
+	<name>PLUGIN_SACDPLAYER</name>
+	<module>Plugins::SACDPlayer::Plugin</module>
+	<importmodule>Plugins::SACDPlayer::Importer</importmodule>
+	<version>0.1.0</version>
+	<defaultState>enabled</defaultState>
+	<description>PLUGIN_SACDPLAYER_DESC</description>
+	<category>musicsource</category>
+	<creator>Felipe Freitas</creator>
+	<optionsURL>plugins/SACDPlayer/settings/basic.html</optionsURL>
+	<targetApplication>
+		<id>SlimServer</id>
+		<minVersion>8.5</minVersion>
+		<maxVersion>*</maxVersion>
+	</targetApplication>
+</extension>

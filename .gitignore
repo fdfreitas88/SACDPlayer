@@ -1,5 +1,7 @@
 Bin/darwin/sacd_extract
 build/
+t/tmp/
 *.dsf
 *.iso
 .DS_Store
+.superpowers/
