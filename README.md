@@ -24,7 +24,7 @@ Spec de desenho: `docs/superpowers/specs/2026-09-06-sacdplayer-design.md`.
    ```bash
    tools/deploy.sh
    ```
-   Por padrão usa `SACD_HOST=musicplayer@10.73.254.20`; sobrescreva com a variável de ambiente se necessário. O script copia `install.xml`, `custom-types.conf`, `strings.txt`, os módulos `.pm`, `Bin/darwin/sacd_extract` e `HTML/` para `~/Library/Caches/Squeezebox/InstalledPlugins/Plugins/SACDPlayer` no host, ajusta permissões (755 dirs / 644 arquivos, 755 no binário) e **não reinicia o LMS**.
+   Por padrão usa `SACD_HOST=musicplayer@10.73.254.20`; sobrescreva com a variável de ambiente se necessário. O script copia `install.xml`, `custom-types.conf`, `strings.txt`, os módulos `.pm`, `Bin/darwin/sacd_extract` e `HTML/` para `~/Library/Application Support/Squeezebox/Plugins/SACDPlayer` no host (pasta de plugins manuais; `InstalledPlugins` é apagada pelo gerenciador de extensões no restart), ajusta permissões (755 dirs / 644 arquivos, 755 no binário) e **não reinicia o LMS**.
 
 3. Reinicie o Lyrion Music Server manualmente (o deploy script apenas lembra):
    ```bash

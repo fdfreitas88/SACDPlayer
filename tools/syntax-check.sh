@@ -17,7 +17,7 @@ HOST="${SACD_HOST:-musicplayer@10.73.254.20}"
 APP="${SACD_APP:-/Applications/Lyrion Music Server.app/Contents/MacOS/Lyrion Music Server.app}"
 S="$APP/Contents/Resources/server"                          # slimserver.pl's cwd
 PERL="$APP/Contents/MacOS/perl"                             # the bundled perl LMS actually runs
-P="${SACD_PLUGINDIR:-\$HOME/Library/Caches/Squeezebox/InstalledPlugins}"
+P="${SACD_PLUGINDIR:-\$HOME/Library/Application\\ Support/Squeezebox}"
 MODULES="${SACD_MODULES:-Registry Toc Cache Extractor Format Importer ProtocolHandler Commands Settings Plugin}"
 
 # Include paths, in this order (each one was needed to get past a genuine bootstrap error):
