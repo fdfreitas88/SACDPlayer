@@ -16,7 +16,7 @@ sub prefs {
 	$prefs->init({
 		cache_dir         => catdir($ENV{HOME} || '/tmp', 'Library', 'Caches', 'Squeezebox', 'SACDPlayer'),
 		cache_cap_gb      => 200,
-		extract_timeout_s => 600,
+		extract_timeout_s => 1800,
 		min_free_gb       => 5,
 	});
 	return $prefs;

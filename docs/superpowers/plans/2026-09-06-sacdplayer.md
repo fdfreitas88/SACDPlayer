@@ -14,7 +14,7 @@
 - LMS core source on the server: `/Applications/Lyrion Music Server.app/Contents/MacOS/Lyrion Music Server.app/Contents/Resources/server` (call it `$S`).
 - Plugin install path on the server: `~/Library/Application Support/Squeezebox/Plugins/SACDPlayer` (manual plugin folder; `InstalledPlugins` is wiped by the extension manager on restart) (files 644, dirs 755; the server's rsync is 2.6.9, so no `--chmod=D755,F644`).
 - Binary name and place: `Bin/darwin/sacd_extract`, x86_64, resolved by `Slim::Utils::Misc::findbin('sacd_extract')`. Not committed to git.
-- Cache default: `$HOME/Library/Caches/Squeezebox/SACDPlayer`. Prefs namespace `plugin.sacdplayer`: `cache_dir`, `cache_cap_gb` (default 200), `extract_timeout_s` (default 600), `min_free_gb` (default 5).
+- Cache default: `$HOME/Library/Caches/Squeezebox/SACDPlayer`. Prefs namespace `plugin.sacdplayer`: `cache_dir`, `cache_cap_gb` (default 200), `extract_timeout_s` (default 1800; multichannel DST extracts at 1.2× realtime on the i5), `min_free_gb` (default 5).
 - Virtual track URL: `sacd://` + percent-escaped ISO path + `/` + `2ch|mch` + `/` + two-digit track + `.dsf`.
 - ISO key: first 16 hex chars of `md5_hex("$path|$size|$mtime")`.
 - Album names: `<disc title> (2ch)` and `<disc title> (mch)`. mch plays only L/R (engine behaviour); never downmix.
