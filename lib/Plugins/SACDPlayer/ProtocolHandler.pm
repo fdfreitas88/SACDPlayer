@@ -1,5 +1,6 @@
 package Plugins::SACDPlayer::ProtocolHandler;
-# sacd:// tracks are served from the local DSF cache. Subclassing File keeps LMS's native dsf passthrough (DoP).
+# Virtual tracks (file:///path/Album.iso#2ch-03) are served from the local DSF cache.
+# Subclassing File keeps LMS's native dsf passthrough (DoP).
 use strict;
 use warnings;
 use base qw(Slim::Player::Protocols::File);
@@ -13,6 +14,9 @@ my $log = logger('plugin.sacdplayer');
 
 sub isRemote { 0 }
 sub canDirectStream { 0 }
+# These are file:// URLs, so LocalFile's direct-stream path may be consulted: refuse it,
+# the ISO on disk is not the DSF we serve.
+sub canDirectStreamSong { 0 }
 sub contentType { 'dsf' }
 # Seeking needs the local DSF: File::open cannot seek into a track we have not extracted yet.
 sub canSeek {

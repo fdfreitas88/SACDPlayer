@@ -7,7 +7,7 @@ Spec de desenho: `docs/superpowers/specs/2026-09-06-sacdplayer-design.md`.
 ## O que faz
 
 - Escaneia arquivos `.iso` de SACD colocados na pasta de música e os registra como dois álbuns virtuais por disco: `<Título> (2ch)` e `<Título> (mch)` (quando a área existir).
-- Ao tocar uma faixa `sacd://`, extrai sob demanda a área inteira (todas as faixas) para DSF via `sacd_extract`, armazena em um cache local com limite configurável (LRU) e serve o arquivo já extraído ao player. Passagem nativa DoP (`dsf dsf * *`) é preservada — nada de transcodificação.
+- Ao tocar uma faixa virtual (`file://<iso>#<area>-NN`), extrai sob demanda a área inteira (todas as faixas) para DSF via `sacd_extract`, armazena em um cache local com limite configurável (LRU) e serve o arquivo já extraído ao player. Passagem nativa DoP (`dsf dsf * *`) é preservada — nada de transcodificação.
 - Multicanal (mch) é reproduzido apenas como estéreo (downmix L/R); não há saída 5.1 nativa.
 - A primeira reprodução de um álbum espera a extração terminar (mostra "Preparing SACD track N / M" no player); tocadas seguintes do mesmo álbum são imediatas enquanto o cache não for evictado.
 - Um único worker de extração por vez; pedidos adicionais entram em fila.
@@ -66,7 +66,11 @@ Retorna `usage_bytes`, `cap_bytes`, `free_bytes`, `binary` (1 se `sacd_extract` 
 curl -s -X POST -H 'Content-Type: application/json' http://10.73.254.20:9000/jsonrpc.js \
   -d '{"id":1,"method":"slim.request","params":["",["sacdplayer","status","abcdef0123456789/2ch"]]}'
 ```
-Aceita também uma URL `sacd://...` no lugar de `<key>/<area>`. Retorna `key`, `area`, `title` e a lista `tracks` (number/state/bytes/error).
+Aceita também a URL da faixa virtual (`file:///Volumes/.../Album.iso#2ch-01`) no lugar de `<key>/<area>`, por exemplo:
+```bash
+curl -s -X POST -H 'Content-Type: application/json' http://10.73.254.20:9000/jsonrpc.js \\
+  -d '{"id":1,"method":"slim.request","params":["",["sacdplayer","status","file:///Volumes/Disk8TB/Musik/Lossless/SACD-ISO/Album.iso#2ch-01"]]}'
+``` Retorna `key`, `area`, `title` e a lista `tracks` (number/state/bytes/error).
 
 ### `prepare <key>/<area>` — força extração antecipada do álbum inteiro
 ```bash

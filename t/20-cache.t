@@ -14,11 +14,24 @@ like($key, qr/^[0-9a-f]{16}$/, 'key is 16 hex');
 is($c->keyFor($iso), $key, 'key stable');
 
 my $url = $c->trackUrl($iso, '2ch', 3);
-like($url, qr{^sacd://.+/2ch/03\.dsf$}, 'url shape');
+like($url, qr{^file:///.+\.iso\#2ch-03$}, 'url shape');
 unlike($url, qr/[ Ä]/, 'url escaped');
 my ($p, $a, $n) = $c->parseUrl($url);
 is($p, $iso, 'roundtrip path'); is($a, '2ch', 'area'); is($n, 3, 'number');
 is_deeply([ $c->parseUrl('http://x/y.dsf') ], [], 'foreign url');
+is_deeply([ $c->parseUrl('file:///x.iso') ], [], 'no anchor is not a virtual track');
+is_deeply([ $c->parseUrl('file:///x.flac#0-10') ], [], 'cue fragment on another format ignored');
+is_deeply([ $c->parseUrl('sacd:///x.iso#2ch-01') ], [], 'old scheme no longer parsed');
+is($c->trackUrl($iso, 'mch', 123), $c->trackUrl($iso, 'mch', 123), 'three-digit track');
+is(($c->parseUrl($c->trackUrl($iso, 'mch', 123)))[2], 123, 'three-digit roundtrip');
+
+# byte-exact roundtrip for awkward paths
+for my $name ("a b & c'd.iso", "Caf\xC3\xA9.iso") {
+	my $awk = File::Spec->catfile($dir, $name);
+	my $u   = $c->trackUrl($awk, '2ch', 1);
+	unlike($u, qr/[ &']/, "escaped: $name");
+	is(($c->parseUrl($u))[0], $awk, "roundtrip: $name");
+}
 
 is($c->trackPath($key, 'mch', 12), "$dir/cache/$key/mch/12.dsf", 'track path');
 

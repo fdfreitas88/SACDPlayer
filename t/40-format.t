@@ -27,12 +27,21 @@ $Slim::Utils::Misc::FINDBIN = $fake;
 my $tags = Plugins::SACDPlayer::Format->getTag($iso);
 is($tags->{CT}, 'fec', 'container hidden as fec'); is($tags->{AUDIO}, 0, 'container not audio');
 ok($tags->{TITLE}, 'container title');
-my $n2 = grep { $_->{url} =~ m{/2ch/} } @Slim::Schema::CREATED;
-my $nm = grep { $_->{url} =~ m{/mch/} } @Slim::Schema::CREATED;
+my $n2 = grep { $_->{url} =~ m{\#2ch-} } @Slim::Schema::CREATED;
+my $nm = grep { $_->{url} =~ m{\#mch-} } @Slim::Schema::CREATED;
 ok($n2 > 0, "$n2 stereo tracks created"); is($nm, 0, 'no mch tracks for a stereo-only disc');
-like($Slim::Schema::CREATED[0]{url}, qr{^sacd://.+/(2ch|mch)/01\.dsf$}, 'first url');
+like($Slim::Schema::CREATED[0]{url}, qr{^file:///.+\.iso\#(?:2ch|mch)-01$}, 'first url');
 is($Slim::Schema::CREATED[0]{readTags}, 0, 'no tag re-read');
 ok(-f Plugins::SACDPlayer::Registry->cache->indexPath(Plugins::SACDPlayer::Registry->cache->keyFor($iso)), 'index written');
+
+# an anchored call returns that single track's attributes, not the container tags
+my $one = Plugins::SACDPlayer::Format->getTag($iso, '2ch-02');
+is($one->{CONTENT_TYPE}, 'dsf', 'anchored getTag content type');
+is($one->{TRACKNUM}, 2, 'anchored getTag track number');
+is($one->{TITLE}, $Slim::Schema::CREATED[1]{attributes}{TITLE}, 'anchored getTag title of track 2');
+ok(!exists $one->{REMOTE}, 'anchored getTag leaves REMOTE unset');
+is_deeply(Plugins::SACDPlayer::Format->getTag($iso, '2ch-99'), {}, 'unknown anchor -> empty');
+is_deeply(Plugins::SACDPlayer::Format->getTag($iso, 'bogus'), {}, 'malformed anchor -> empty');
 
 # second call uses the index (binary now missing) and still creates tracks
 $Slim::Utils::Misc::FINDBIN = "$dir/nope"; Plugins::SACDPlayer::Registry->_resetBinaryForTests;

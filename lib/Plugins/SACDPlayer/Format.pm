@@ -29,6 +29,19 @@ sub getTag {
 	$cache->ensureIndex($file, $toc);
 
 	my @st    = stat($file);
+
+	# LMS calls readTags on the anchored virtual URL (file://...iso#2ch-03) when it needs
+	# that single track's tags: answer with the track's attributes, like
+	# Slim::Formats::FLAC::getTag does for an embedded cue anchor.
+	if (defined $anchor && length $anchor) {
+		my ($ar, $num) = $anchor =~ m{^(2ch|mch)-(\d{2,3})$} or return {};
+		$num += 0;
+		my ($area) = grep { $_->{area} eq $ar } @{ $toc->{areas} || [] };
+		my ($t) = $area ? grep { $_->{number} == $num } @{ $area->{tracks} || [] } : ();
+		return {} unless $t;
+		return attributesFor($toc, $area, $t, AGE => $st[9], FS => $st[7]);
+	}
+
 	my $title = $toc->{title} || (File::Basename::basename($file) =~ s/\.iso$//ir);
 	require Slim::Schema;
 	my $rs = Slim::Schema->rs('Track');

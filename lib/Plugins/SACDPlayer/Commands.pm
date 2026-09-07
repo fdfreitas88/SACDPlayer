@@ -16,7 +16,7 @@ sub register {
 
 sub _fail { my ($r, $msg) = @_; $r->addResult('success', 0); $r->addResult('error', $msg); $r->setStatusDone; return }
 
-# Accepts a sacd:// track URL or "<key>/<area>". Returns ($key, $area, $iso) or ().
+# Accepts a virtual track URL (file://...iso#2ch-01) or "<key>/<area>". Returns ($key, $area, $iso) or ().
 sub resolveTarget {
 	my ($target) = @_;
 	my $cache = Plugins::SACDPlayer::Registry->cache;

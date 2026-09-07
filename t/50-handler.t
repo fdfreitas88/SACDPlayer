@@ -32,6 +32,7 @@ my $song = FakeSong->new($url, $client);
 is(Plugins::SACDPlayer::ProtocolHandler->isRemote, 0, 'not remote');
 is(Plugins::SACDPlayer::ProtocolHandler->pathFromFileURL($url), $cache->trackPath($key, '2ch', 2), 'path mapping');
 is(Plugins::SACDPlayer::ProtocolHandler->pathFromFileURL('file:///x.dsf'), '/x.dsf', 'file urls untouched');
+is(Plugins::SACDPlayer::ProtocolHandler->canDirectStreamSong, 0, 'never direct streamed');
 
 my ($ok, $err);
 Plugins::SACDPlayer::ProtocolHandler->getNextTrack($song, sub { $ok = 1 }, sub { $err = shift });
@@ -56,7 +57,7 @@ $spins = 0; while ($x->tick && $spins++ < 200) { select undef, undef, undef, 0.0
 is($e, 'PLUGIN_SACDPLAYER_EXTRACT_FAILED', 'fail token'); delete $ENV{FAKE_FAIL};
 
 # foreign url
-my $e2; Plugins::SACDPlayer::ProtocolHandler->getNextTrack(FakeSong->new('sacd://bad', $client), sub {}, sub { $e2 = shift });
+my $e2; Plugins::SACDPlayer::ProtocolHandler->getNextTrack(FakeSong->new('file:///bad.flac', $client), sub {}, sub { $e2 = shift });
 is($e2, 'PLUGIN_SACDPLAYER_EXTRACT_FAILED', 'unparseable url fails cleanly');
 
 my $meta = Plugins::SACDPlayer::ProtocolHandler->getMetadataFor($client, $url);

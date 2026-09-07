@@ -7,6 +7,7 @@ use File::Path qw(make_path remove_tree);
 use File::Spec::Functions qw(catdir catfile);
 use JSON::PP ();
 use Time::HiRes ();
+use Slim::Utils::Misc ();
 
 my $json = JSON::PP->new->utf8->canonical->pretty;
 
@@ -41,18 +42,19 @@ sub keyFor {
 	return substr(md5_hex("$iso|$i->{size}|$i->{mtime}"), 0, 16);
 }
 
-sub _escape { my $s = shift; utf8::encode($s) if utf8::is_utf8($s); $s =~ s/([^A-Za-z0-9\-._~])/sprintf('%%%02X', ord($1))/ge; $s }
-sub _unescape { my $s = shift; $s =~ s/%([0-9A-Fa-f]{2})/chr(hex($1))/ge; $s }
-
+# Virtual tracks are file:// URLs with an anchor (like an embedded cue sheet) so that
+# Slim::Music::Info::isRemoteURL is false and LMS stores them in the tracks table.
+# A custom scheme (sacd://) cannot be made local: %localHandlers in
+# Slim::Player::ProtocolHandlers is a file-lexical hash we cannot extend.
 sub trackUrl {
 	my ($self, $iso, $area, $n) = @_;
-	return sprintf('sacd://%s/%s/%02d.dsf', _escape($iso), $area, $n);
+	return sprintf('%s#%s-%02d', Slim::Utils::Misc::fileURLFromPath($iso), $area, $n);
 }
 
 sub parseUrl {
 	my ($self, $url) = @_;
-	return () unless defined $url && $url =~ m{^sacd://([^/]+)/(2ch|mch)/(\d{2,3})\.dsf$};
-	return (_unescape($1), $2, int($3));
+	return () unless defined $url && $url =~ m{^(file://.+\.[iI][sS][oO])\#(2ch|mch)-(\d{2,3})$};
+	return (Slim::Utils::Misc::pathFromFileURL($1), $2, int($3));
 }
 
 sub trackPath { my ($s, $k, $a, $n) = @_; catfile($s->{dir}, $k, $a, sprintf('%02d.dsf', $n)) }

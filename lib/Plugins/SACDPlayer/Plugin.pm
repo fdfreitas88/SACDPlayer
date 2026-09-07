@@ -20,7 +20,9 @@ sub initPlugin {
 	Plugins::SACDPlayer::Registry->registerTagClass;
 	Plugins::SACDPlayer::Registry->cache->recover;
 	require Plugins::SACDPlayer::ProtocolHandler;
-	Slim::Player::ProtocolHandlers->registerHandler('sacd', 'Plugins::SACDPlayer::ProtocolHandler');
+	# URL-regexp handler, not a scheme handler: our tracks are file:// URLs with an anchor
+	# so LMS treats them as local. handlerForURL checks regexp handlers before schemes.
+	Slim::Player::ProtocolHandlers->registerURLHandler(qr{\.iso\#(?:2ch|mch)-\d{2,3}$}i, 'Plugins::SACDPlayer::ProtocolHandler');
 	eval { require Plugins::SACDPlayer::Commands; Plugins::SACDPlayer::Commands->register; 1 } or $log->error("commands not registered: $@");
 	if (main::WEBUI()) {
 		eval { require Plugins::SACDPlayer::Settings; Plugins::SACDPlayer::Settings->new; 1 } or $log->error("settings not registered: $@");

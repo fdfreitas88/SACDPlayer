@@ -4,7 +4,7 @@
 
 **Goal:** An LMS plugin that lists SACD ISO files as albums (2ch and mch areas) and plays them from a local DSF cache filled lazily by `sacd_extract`, so the player receives a real DSF and the native `dsf dsf * *` DoP passthrough applies.
 
-**Architecture:** `custom-types.conf` makes `.iso` an audio type `sacd`; `Format.pm` is its tag reader and creates one virtual track per SACD track (URL `sacd://<escaped iso path>/<area>/<NN>.dsf`, content type `dsf`), returning `CT => 'fec'` for the ISO itself so it is hidden. `ProtocolHandler.pm` subclasses `Slim::Player::Protocols::File`, waits for `Extractor.pm` to put the track in `Cache.pm`, then serves the cached file through an overridden `pathFromFileURL`. `Toc.pm`, `Cache.pm` and `Extractor.pm` are Slim-free and unit-tested with `prove`; the Slim-facing modules are syntax-checked against stubs and verified end to end on the musicplayer.
+**Architecture:** `custom-types.conf` makes `.iso` an audio type `sacd`; `Format.pm` is its tag reader and creates one virtual track per SACD track (URL `file://<escaped iso path>#<area>-<NN>`, content type `dsf`), returning `CT => 'fec'` for the ISO itself so it is hidden. `ProtocolHandler.pm` subclasses `Slim::Player::Protocols::File`, waits for `Extractor.pm` to put the track in `Cache.pm`, then serves the cached file through an overridden `pathFromFileURL`. `Toc.pm`, `Cache.pm` and `Extractor.pm` are Slim-free and unit-tested with `prove`; the Slim-facing modules are syntax-checked against stubs and verified end to end on the musicplayer.
 
 **Tech Stack:** Perl 5 (LMS 9.1.1 bundles 5.34 on macOS; local tests on system perl 5.34), core modules only (JSON::PP, Digest::MD5, File::Temp, File::Path, File::Find, Time::HiRes, Test::More), `Proc::Background` (bundled in LMS `CPAN/`), `sacd_extract` (C, CMake, GPL-2) cross-built for x86_64.
 
@@ -15,7 +15,7 @@
 - Plugin install path on the server: `~/Library/Application Support/Squeezebox/Plugins/SACDPlayer` (manual plugin folder; `InstalledPlugins` is wiped by the extension manager on restart) (files 644, dirs 755; the server's rsync is 2.6.9, so no `--chmod=D755,F644`).
 - Binary name and place: `Bin/darwin/sacd_extract`, x86_64, resolved by `Slim::Utils::Misc::findbin('sacd_extract')`. Not committed to git.
 - Cache default: `$HOME/Library/Caches/Squeezebox/SACDPlayer`. Prefs namespace `plugin.sacdplayer`: `cache_dir`, `cache_cap_gb` (default 200), `extract_timeout_s` (default 1800; multichannel DST extracts at 1.2× realtime on the i5), `min_free_gb` (default 5).
-- Virtual track URL: `sacd://` + percent-escaped ISO path + `/` + `2ch|mch` + `/` + two-digit track + `.dsf`.
+- Virtual track URL: `Slim::Utils::Misc::fileURLFromPath($iso)` + `#` + `2ch|mch` + `-` + two-digit track (e.g. `file:///.../Album.iso#2ch-03`). A custom `sacd://` scheme cannot be used: `isRemoteURL` would be true (the local-scheme list in `Slim::Player::ProtocolHandlers` is a file-lexical hash) and every virtual track would land in the in-memory RemoteTrack cache instead of the `tracks` table.
 - ISO key: first 16 hex chars of `md5_hex("$path|$size|$mtime")`.
 - Album names: `<disc title> (2ch)` and `<disc title> (mch)`. mch plays only L/R (engine behaviour); never downmix.
 - One extraction process at a time. Priority: 0 = track requested by play, 1 = rest of that album, 2 = manual prepare. Never evict the album being played or one with queued tracks.
@@ -39,7 +39,7 @@ SACDPlayer/
     Cache.pm                        key, paths, index JSON, states, LRU, disk space
     Extractor.pm                    priority queue + one worker + waiters
     Format.pm                       Slim::Formats tag class for type sacd
-    ProtocolHandler.pm              sacd:// handler (File subclass)
+    ProtocolHandler.pm              virtual-track URL handler (File subclass)
     Commands.pm                     JSON-RPC verbs
     Settings.pm                     web settings page
   HTML/EN/plugins/SACDPlayer/settings/basic.html
@@ -1929,9 +1929,9 @@ Wait for `{"id":1,"method":"slim.request","params":["",["rescanprogress"]]}` to 
 
 - [ ] **Step 4: Verify the library** (read-only):
 ```bash
-ssh musicplayer@10.73.254.20 'sqlite3 ~/Library/Caches/Squeezebox/library.db "select url, content_type, virtual, secs, channels from tracks where url like \"sacd://%\" limit 3; select content_type, audio from tracks where url like \"%.iso\"; select title from albums where title like \"%(2ch)\" or title like \"%(mch)\";"'
+ssh musicplayer@10.73.254.20 'sqlite3 ~/Library/Caches/Squeezebox/library.db "select url, content_type, virtual, secs, channels from tracks where url like \"file://%.iso#%\" limit 3; select content_type, audio from tracks where url like \"%.iso\"; select title from albums where title like \"%(2ch)\" or title like \"%(mch)\";"'
 ```
-Expected: `sacd://.../2ch/01.dsf|dsf|1|<secs>|2`, the ISO row `fec|0`, and two album titles.
+Expected: `file:///.../Album.iso#2ch-01|dsf|1|<secs>|2`, the ISO row `fec|0`, and two album titles.
 
 - [ ] **Step 5: Play through Echo Classic** — open `http://musicplayer.local:9000/echoclassic/`, find the "(2ch)" album, play track 1 on the Apple Squeezer player. Expected: the player briefly shows "Preparing SACD track 1 / N"; within the measured extraction time the track starts; the engine log shows `codec open: 'd'` and `DSD64 stream, format: DOP, rate: 176400Hz`; the Mojo LED is white. Then:
 ```bash
