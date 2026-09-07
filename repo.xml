@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  LMS extension repository descriptor for SACDPlayer.
+
+  <url> must point at a release zip whose root contains the SACDPlayer folder
+  and <sha> at that file's SHA-1 (shasum -a 1 SACDPlayer-X.Y.Z.zip). Both are
+  filled in at release time; until the first release this file only carries the
+  icon and metadata.
+
+  Users add the raw URL of this file under
+  Server Settings > Plugins > Additional repositories:
+
+      https://raw.githubusercontent.com/fdfreitas88/SACDPlayer/main/repo.xml
+-->
+<extensions>
+  <details>
+    <title lang="EN">SACD ISO Player</title>
+  </details>
+  <plugins>
+    <plugin name="SACDPlayer" version="0.1.0" minTarget="8.5" maxTarget="*">
+      <title lang="EN">SACD ISO Player</title>
+      <desc lang="EN">Plays SACD ISO images from the library: the stereo area appears as an album, tracks are extracted to DSF on demand into a size-capped local cache and served with native DoP passthrough.</desc>
+      <url>https://github.com/fdfreitas88/SACDPlayer/releases/download/v0.1.0/SACDPlayer-0.1.0.zip</url>
+      <link>https://github.com/fdfreitas88/SACDPlayer</link>
+      <category>musicsource</category>
+      <icon>https://raw.githubusercontent.com/fdfreitas88/SACDPlayer/main/HTML/EN/plugins/SACDPlayer/html/images/icon.png</icon>
+      <sha></sha>
+      <creator>Felipe Freitas</creator>
+    </plugin>
+  </plugins>
+</extensions>

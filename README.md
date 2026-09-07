@@ -1,3 +1,5 @@
+<p align="center"><img src="docs/logo.png" alt="SACD ISO Player for Lyrion Media Server" width="320"></p>
+
 # SACDPlayer
 
 Plugin para Lyrion Music Server que expõe SACD ISO na biblioteca (área estéreo como álbum; multicanal opcional) e serve DSF extraído por `sacd_extract` a partir de um cache local com evicção LRU, mantendo a passagem nativa `dsf dsf * *` (DoP) do player.
