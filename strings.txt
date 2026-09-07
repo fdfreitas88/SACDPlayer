@@ -43,8 +43,16 @@ PLUGIN_SACDPLAYER_MISSING_BINARY
 	PT	Binário sacd_extract não encontrado na pasta Bin do plugin. Os ISO não serão lidos.
 
 PLUGIN_SACDPLAYER_MCH_NOTE
-	EN	Multichannel albums play only the front left and right channels.
-	PT	Álbuns multicanal tocam apenas os canais frontais esquerdo e direito.
+	EN	The Apple Squeezer engine only plays 2-channel DSD; multichannel areas need a player that accepts 5/6-channel DSD.
+	PT	O engine Apple Squeezer só toca DSD em 2 canais; áreas multicanal exigem um player que aceite DSD de 5/6 canais.
+
+PLUGIN_SACDPLAYER_SHOW_MCH
+	EN	Show multichannel areas
+	PT	Mostrar áreas multicanal
+
+PLUGIN_SACDPLAYER_SHOW_MCH_DESC
+	EN	List the multichannel area of each SACD as an "(mch)" album. Off by default. Changing this needs a full rescan (Clear library and rescan).
+	PT	Lista a área multicanal de cada SACD como um álbum "(mch)". Desligado por padrão. Mudar isto exige um rescan completo (Limpar biblioteca e reler).
 
 PLUGIN_SACDPLAYER_PREPARE
 	EN	Prepare

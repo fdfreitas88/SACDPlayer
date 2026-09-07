@@ -3,7 +3,10 @@
 [% IF message %]<div class="success">[% message | html %]</div>[% END %]
 [% IF NOT binary %]<div style="color:#b00020">[% "PLUGIN_SACDPLAYER_MISSING_BINARY" | string %]</div>[% END %]
 [% IF low_disk %]<div style="color:#b00020">[% "PLUGIN_SACDPLAYER_DISK_LOW" | string %]</div>[% END %]
-<div style="color:#555;margin:6px 0">[% "PLUGIN_SACDPLAYER_MCH_NOTE" | string %]</div>
+[% WRAPPER setting title="PLUGIN_SACDPLAYER_SHOW_MCH" desc="PLUGIN_SACDPLAYER_SHOW_MCH_DESC" %]
+	<input type="checkbox" name="show_mch" id="show_mch" value="1" [% IF prefs.show_mch %]checked[% END %]>
+	<label for="show_mch">[% "PLUGIN_SACDPLAYER_MCH_NOTE" | string %]</label>
+[% END %]
 
 [% WRAPPER setting title="PLUGIN_SACDPLAYER_CACHE_DIR" desc="PLUGIN_SACDPLAYER_CACHE_DIR_DESC" %]
 	<input class="stdedit" type="text" name="cache_dir" size="60" value="[% prefs.cache_dir | html %]">

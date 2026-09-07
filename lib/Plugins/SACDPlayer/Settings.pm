@@ -19,6 +19,7 @@ sub handler {
 		if ($dir ne '' && !-d $dir) { $message = "Folder does not exist: $dir" }
 		else {
 			$prefs->set('cache_dir', $dir) if $dir ne '';
+			$prefs->set('show_mch', $params->{show_mch} ? 1 : 0);
 			for my $k (qw(cache_cap_gb extract_timeout_s min_free_gb)) {
 				$prefs->set($k, int($params->{$k})) if defined $params->{$k} && $params->{$k} =~ /^\d+$/;
 			}
@@ -38,7 +39,7 @@ sub handler {
 	}
 
 	my $cache = Plugins::SACDPlayer::Registry->cache;
-	$params->{prefs}       = { map { $_ => $prefs->get($_) } qw(cache_dir cache_cap_gb extract_timeout_s min_free_gb) };
+	$params->{prefs}       = { map { $_ => $prefs->get($_) } qw(cache_dir cache_cap_gb extract_timeout_s min_free_gb show_mch) };
 	$params->{message}     = $message;
 	$params->{binary}      = Plugins::SACDPlayer::Registry->binary ? 1 : 0;
 	$params->{usage_gb}    = sprintf('%.1f', $cache->usageBytes / 1024**3);

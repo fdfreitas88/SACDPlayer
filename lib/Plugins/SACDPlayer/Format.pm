@@ -56,7 +56,11 @@ sub getTag {
 	}
 	my $count = 0;
 	my $failed = 0;
+	my $showMch = Plugins::SACDPlayer::Registry->prefs->get('show_mch') ? 1 : 0;
 	for my $area (@{ $toc->{areas} }) {
+		# Multichannel DSD cannot be played by the Apple Squeezer engine (it accepts 2 channels
+		# only), so mch areas stay out of the library unless the user opts in.
+		next if $area->{area} eq 'mch' && !$showMch;
 		for my $t (@{ $area->{tracks} }) {
 			my $attrs = attributesFor($toc, $area, $t, AGE => $st[9], FS => $st[7]);
 			my $url   = $cache->trackUrl($file, $area->{area}, $t->{number});

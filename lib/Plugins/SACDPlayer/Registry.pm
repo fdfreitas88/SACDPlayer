@@ -18,6 +18,7 @@ sub prefs {
 		cache_cap_gb      => 200,
 		extract_timeout_s => 1800,
 		min_free_gb       => 5,
+		show_mch          => 0,   # the Apple Squeezer engine rejects DSD with more than 2 channels
 	});
 	return $prefs;
 }

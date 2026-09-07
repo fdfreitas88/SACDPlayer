@@ -16,7 +16,7 @@ Resultado esperado: ISOs num SMB aparecem na biblioteca como álbuns normais, to
 | Onde fica o cache | Disco interno do musicplayer, padrão `~/Library/Caches/Squeezebox/SACDPlayer/` |
 | Quando extrair | Lazy (no primeiro play) e manual (botão "preparar álbum"); nunca no scan |
 | Política de cache | Cap em GB configurável, evicção LRU por álbum inteiro |
-| Áreas | 2ch e mch viram álbuns separados, sufixos "(2ch)" e "(mch)"; mch toca só L/R |
+| Áreas | 2ch e mch viram álbuns separados, sufixos "(2ch)" e "(mch)". **Revisto 2026-09-07:** o engine Apple Squeezer recusa DSD com mais de 2 canais (`unsupported DSD format: channels=5`), então áreas mch ficam fora da biblioteca por padrão (pref `show_mch`, exige rescan completo ao mudar) |
 | Faixas DST no primeiro play | Extrair a faixa inteira antes de tocar, com aviso "preparando"; velocidade medida em spike |
 | UI | Verbos JSON-RPC + página de settings no LMS; Echo Classic integra depois (detect and degrade) |
 | Abordagem | Plugin LMS: tipo de áudio `sacd` cujo leitor de tags cria faixas virtuais (padrão do FLAC com cue embutido, `fec`) + handler de protocolo registrado por regexp de URL (`file://...iso#<area>-NN`) subclasse de `Slim::Player::Protocols::File` |
