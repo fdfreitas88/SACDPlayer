@@ -94,3 +94,7 @@ Após o evict, `status` para essa área retorna faixas `absent`.
 - **Primeira reprodução espera a extração** — o player mostra "Preparing SACD track N / M" até o `sacd_extract` terminar a área inteira; faixas subsequentes do mesmo álbum são instantâneas enquanto o cache existir.
 - **Um único worker de extração** — pedidos concorrentes (outro álbum, ou `prepare` manual) entram em fila; não há paralelismo.
 - **Sem retry automático** — se a extração falhar (binário ausente, exit não-zero, timeout, disco baixo), a faixa fica marcada `failed` e uma nova tentativa exige um novo pedido de reprodução ou `prepare`.
+
+## Licença
+
+GPL-3.0 (ver `LICENSE`). O binário `sacd_extract` embarcado vem do fork Sound-Linux-More/sacd-extract (GPL-2) e é executado como processo separado.

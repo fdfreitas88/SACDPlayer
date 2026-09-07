@@ -5,3 +5,4 @@ t/tmp/
 *.iso
 .DS_Store
 .superpowers/
+dist/

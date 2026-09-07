@@ -17,14 +17,14 @@
     <title lang="EN">SACD ISO Player</title>
   </details>
   <plugins>
-    <plugin name="SACDPlayer" version="0.1.0" minTarget="8.5" maxTarget="*">
+    <plugin name="SACDPlayer" version="1.0.0" minTarget="8.5" maxTarget="*">
       <title lang="EN">SACD ISO Player</title>
       <desc lang="EN">Plays SACD ISO images from the library: the stereo area appears as an album, tracks are extracted to DSF on demand into a size-capped local cache and served with native DoP passthrough.</desc>
-      <url>https://github.com/fdfreitas88/SACDPlayer/releases/download/v0.1.0/SACDPlayer-0.1.0.zip</url>
+      <url>https://github.com/fdfreitas88/SACDPlayer/releases/download/v1.0.0/SACDPlayer-1.0.0.zip</url>
       <link>https://github.com/fdfreitas88/SACDPlayer</link>
       <category>musicsource</category>
       <icon>https://raw.githubusercontent.com/fdfreitas88/SACDPlayer/main/HTML/EN/plugins/SACDPlayer/html/images/icon.png</icon>
-      <sha></sha>
+      <sha>9307d2e26a9e19984d6b66f93464cbcbdcc6dbb3</sha>
       <creator>Felipe Freitas</creator>
     </plugin>
   </plugins>
