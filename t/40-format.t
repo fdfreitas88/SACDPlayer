@@ -49,6 +49,14 @@ $Slim::Utils::Misc::FINDBIN = "$dir/nope"; Plugins::SACDPlayer::Registry->_reset
 $tags = Plugins::SACDPlayer::Format->getTag($iso);
 is($tags->{CT}, 'fec', 'cached toc reused'); ok(scalar @Slim::Schema::CREATED, 'tracks recreated from index');
 
+# once the children exist in the library for this unchanged ISO, a metadata poll must not rewrite them
+$Slim::Schema::EXISTING{ $Slim::Schema::CREATED[0]{url} } = 1;
+@Slim::Schema::CREATED = ();
+$tags = Plugins::SACDPlayer::Format->getTag($iso);
+is($tags->{CT}, 'fec', 'container still hidden when children exist');
+is(scalar @Slim::Schema::CREATED, 0, 'no rows rewritten when children already exist');
+%Slim::Schema::EXISTING = ();
+
 # unreadable ISO / no binary and no index -> empty hash, nothing created
 my $iso2 = File::Spec->catfile($dir, 'Other.iso'); open $f, '>', $iso2; print $f 'y'; close $f;
 @Slim::Schema::CREATED = ();
