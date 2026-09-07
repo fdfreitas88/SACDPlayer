@@ -1,14 +1,14 @@
 # SACDPlayer
 
-Plugin para Lyrion Music Server que expõe SACD ISO na biblioteca (áreas 2ch e mch como álbuns) e serve DSF extraído por `sacd_extract` a partir de um cache local com evicção LRU, mantendo a passagem nativa `dsf dsf * *` (DoP) do player.
+Plugin para Lyrion Music Server que expõe SACD ISO na biblioteca (área estéreo como álbum; multicanal opcional) e serve DSF extraído por `sacd_extract` a partir de um cache local com evicção LRU, mantendo a passagem nativa `dsf dsf * *` (DoP) do player.
 
 Spec de desenho: `docs/superpowers/specs/2026-09-06-sacdplayer-design.md`.
 
 ## O que faz
 
-- Escaneia arquivos `.iso` de SACD colocados na pasta de música e os registra como dois álbuns virtuais por disco: `<Título> (2ch)` e `<Título> (mch)` (quando a área existir).
+- Escaneia arquivos `.iso` de SACD colocados na pasta de música e registra a área estéreo como o álbum virtual `<Título> (2ch)`. A área multicanal só vira `<Título> (mch)` com a opção `show_mch` ligada.
 - Ao tocar uma faixa virtual (`file://<iso>#<area>-NN`), extrai sob demanda a área inteira (todas as faixas) para DSF via `sacd_extract`, armazena em um cache local com limite configurável (LRU) e serve o arquivo já extraído ao player. Passagem nativa DoP (`dsf dsf * *`) é preservada — nada de transcodificação.
-- Multicanal (mch) é reproduzido apenas como estéreo (downmix L/R); não há saída 5.1 nativa.
+- Multicanal: o engine Apple Squeezer só aceita DSD de 2 canais (`unsupported DSD format: channels=5`), por isso as áreas mch ficam ocultas por padrão. Ligar `show_mch` exige um rescan completo e um player que toque DSD 5/6 canais.
 - A primeira reprodução de um álbum espera a extração terminar (mostra "Preparing SACD track N / M" no player); tocadas seguintes do mesmo álbum são imediatas enquanto o cache não for evictado.
 - Um único worker de extração por vez; pedidos adicionais entram em fila.
 
@@ -88,7 +88,7 @@ Após o evict, `status` para essa área retorna faixas `absent`.
 
 ## Limitações conhecidas
 
-- **Multicanal toca apenas L/R** — não há downmix 5.1→2.1 nem saída discreta multicanal; a área `mch` é servida como estéreo.
+- **Multicanal não toca no Apple Squeezer** — o engine recusa DSD com mais de 2 canais; a área `mch` fica oculta salvo `show_mch`.
 - **Primeira reprodução espera a extração** — o player mostra "Preparing SACD track N / M" até o `sacd_extract` terminar a área inteira; faixas subsequentes do mesmo álbum são instantâneas enquanto o cache existir.
 - **Um único worker de extração** — pedidos concorrentes (outro álbum, ou `prepare` manual) entram em fila; não há paralelismo.
 - **Sem retry automático** — se a extração falhar (binário ausente, exit não-zero, timeout, disco baixo), a faixa fica marcada `failed` e uma nova tentativa exige um novo pedido de reprodução ou `prepare`.
