@@ -2,7 +2,6 @@ package Plugins::SACDPlayer::Toc;
 # Parses the text of `sacd_extract -P` (scarletbook_print.c) and runs the binary.
 use strict;
 use warnings;
-use POSIX ();
 
 # Fields printed by scarletbook_print_master_toc / _disc_text / _album_text.
 # Disc text is printed before Album text; the first non-empty value wins.
@@ -63,22 +62,21 @@ sub areaOf {
 }
 
 # Runs `sacd_extract -P -i $iso` with a wall-clock timeout. Returns ($toc, undef) or (undef, $error).
+#
+# Uses the list-form pipe open, which lets perl fork+exec internally and wire the child's
+# stdout at file-descriptor level. Never fork() by hand here: inside the LMS scanner STDOUT and
+# STDERR are tied to Slim::Utils::Log::Trapper, so `open STDERR, '>&', ...` dies in the child,
+# and that child then keeps running as a second copy of the scanner (2026-09-06: this
+# multiplied scanners on every ISO until the server fell over). If exec fails, perl's own child
+# path _exit()s without running END blocks, so no clone survives.
 sub run {
 	my ($binary, $iso, $timeout) = @_;
 	$timeout ||= 60;
-	return (undef, 'sacd_extract binary missing') unless $binary && -x $binary;
+	return (undef, 'sacd_extract binary missing') unless $binary && -x $binary && -f $binary;
 	return (undef, "ISO not readable: $iso")       unless -r $iso;
 	my $out = '';
-	my $pid = open(my $fh, '-|');
-	return (undef, "fork failed: $!") unless defined $pid;
-	if (!$pid) {                                  # child
-		open STDERR, '>&', \*STDOUT;
-		no warnings 'exec';
-		exec($binary, '-P', '-i', $iso);
-		# _exit, not exit: a plain exit would run the parent's END blocks (DESTROY, buffered
-		# output, Test::More's plan) in this forked copy of the interpreter.
-		POSIX::_exit(127);
-	}
+	my $pid = open(my $fh, '-|', $binary, '-P', '-i', $iso);
+	return (undef, "cannot start sacd_extract: $!") unless $pid;
 	local $SIG{ALRM} = sub { kill 'KILL', $pid; die "timeout\n" };
 	eval { alarm $timeout; local $/; $out = <$fh>; alarm 0; };
 	alarm 0;

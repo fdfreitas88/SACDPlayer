@@ -21,10 +21,10 @@ sub getTag {
 
 	if (!$toc) {
 		my $bin = Plugins::SACDPlayer::Registry->binary;
-		if (!$bin) { $log->warn("sacd_extract missing; skipping $file"); return {} }
+		if (!$bin) { $log->warn("sacd_extract missing; skipping $file"); return _hidden($file) }
 		my $err;
 		($toc, $err) = Plugins::SACDPlayer::Toc::run($bin, $file, 60);
-		if (!$toc) { $log->warn("cannot read $file: $err"); return {} }
+		if (!$toc) { $log->warn("cannot read $file: $err"); return _hidden($file) }
 	}
 	$cache->ensureIndex($file, $toc);
 
@@ -70,6 +70,12 @@ sub attributesFor {
 		AGE          => $file{AGE},
 		FS           => $file{FS},
 	};
+}
+
+# An ISO we cannot read must not become a playable "track": hide it like a cue container.
+sub _hidden {
+	my ($file) = @_;
+	return { CT => 'fec', AUDIO => 0, TITLE => (File::Basename::basename($file) =~ s/\.iso$//ir) };
 }
 
 1;

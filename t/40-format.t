@@ -43,7 +43,7 @@ is($tags->{CT}, 'fec', 'cached toc reused'); ok(scalar @Slim::Schema::CREATED, '
 # unreadable ISO / no binary and no index -> empty hash, nothing created
 my $iso2 = File::Spec->catfile($dir, 'Other.iso'); open $f, '>', $iso2; print $f 'y'; close $f;
 @Slim::Schema::CREATED = ();
-is_deeply(Plugins::SACDPlayer::Format->getTag($iso2), {}, 'no toc -> {}'); is(scalar @Slim::Schema::CREATED, 0, 'nothing created');
+my $h = Plugins::SACDPlayer::Format->getTag($iso2); is($h->{CT}, 'fec', 'unreadable ISO hidden as fec'); is($h->{AUDIO}, 0, 'unreadable ISO not audio'); is($h->{TITLE}, 'Other', 'hidden title from basename'); is(scalar @Slim::Schema::CREATED, 0, 'nothing created');
 
 # a single bad row (DB hiccup) must not abort the whole disc: getTag still returns the
 # container shape, and the failure is logged

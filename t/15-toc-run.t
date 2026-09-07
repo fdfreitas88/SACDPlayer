@@ -26,12 +26,12 @@ my ($t3, $e3) = Plugins::SACDPlayer::Toc::run($bin, '/nonexistent/disc.iso', 5);
 is($t3, undef, 'no toc for an unreadable ISO');
 like($e3, qr/not readable/, 'unreadable ISO reported');
 
-# exec failure in the child (a directory is -x but cannot be exec'd): the child must
-# leave the test harness alone (POSIX::_exit, no END blocks) and the parent must report cleanly
+# exec failure (a directory is -x but not a file): must be refused before any fork, and the
+# parent must report cleanly; perl's own pipe-open child _exit()s, so the harness is untouched
 my $tmp = tempdir(CLEANUP => 1);
 my ($t4, $e4) = Plugins::SACDPlayer::Toc::run($tmp, $iso, 5);
 is($t4, undef, 'no toc when exec fails');
-ok($e4, 'exec failure reported as an error');
+like($e4, qr/binary missing/, 'non-file binary refused before fork');
 
 # timeout
 {

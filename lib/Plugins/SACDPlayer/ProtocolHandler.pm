@@ -85,7 +85,9 @@ sub getNextTrack {
 		if ($ok) { $cache->touch($key); _refreshAudioInfo($url, $payload); $successCb->() }
 		else     { $failCb->('PLUGIN_SACDPLAYER_EXTRACT_FAILED') }
 	});
-	$x->requestAlbum($iso, $area, 1);
+	# Only stereo areas are pre-extracted in the background: multichannel DST decodes at ~1.2x
+	# realtime on the server (measured 2026-09-06), so mch albums are prepared manually.
+	$x->requestAlbum($iso, $area, 1) if $area eq '2ch';
 	Plugins::SACDPlayer::Plugin::armTick() if defined &Plugins::SACDPlayer::Plugin::armTick;
 	return;
 }
