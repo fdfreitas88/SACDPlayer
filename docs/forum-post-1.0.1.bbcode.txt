@@ -1,0 +1,63 @@
+[size=6][b]SACDPlayer 1.0.1[/b][/size]
+
+SACDPlayer brings SACD ISO collections into Lyrion Music Server as browsable albums and playable DSD tracks. It extracts DSF audio only when needed, keeps it in a managed local cache and preserves LMS's native DSF/DoP playback path without transcoding.
+
+[hr]
+
+[size=5][b]SACD ISO Playback[/b][/size]
+
+SACDPlayer discovers SACD ISO images during the normal LMS library scan. Each stereo area appears as an album with its own tracks, metadata and artwork. Multichannel areas can also be exposed for players that accept 5/6-channel DSD.
+
+Playing an uncached track starts extraction of the complete SACD area. The first track waits while the album is prepared; subsequent tracks and later plays start immediately while the extracted album remains cached.
+
+Echo Classic identifies an SACD album with the Super Audio CD mark, DSD64 and 1-bit technical details, DSD track badges and a preparation-state control in the album header.
+
+[img]https://raw.githubusercontent.com/fdfreitas88/SACDPlayer/main/docs/echo-classic-sacd-album-1.0.1.png[/img]
+
+[size=5][b]Managed Extraction Cache[/b][/size]
+
+Extracted DSF files are stored on a local disk under a configurable size limit. SACDPlayer removes the least recently used albums when space is needed, pauses extraction below the configured free-disk threshold and safely recovers interrupted work after LMS restarts.
+
+The settings page controls the cache folder, cache size, extraction timeout, minimum free disk space and optional multichannel discovery. Cached albums can be prepared in advance or removed individually.
+
+Echo Classic adds a dedicated SACD cache page with prepared-album count, used and free space, per-album size and last-access information, and a Remove action.
+
+[img]https://raw.githubusercontent.com/fdfreitas88/SACDPlayer/main/docs/echo-classic-sacd-cache-1.0.1.png[/img]
+
+The native LMS plugin page provides the underlying cache and extraction settings.
+
+[img]https://raw.githubusercontent.com/fdfreitas88/SACDPlayer/main/docs/sacdplayer-settings-1.0.1.png[/img]
+
+[size=5][b]Echo Classic Integration[/b][/size]
+
+Echo Classic 3.5.6 and later detects SACDPlayer automatically. It can display SACD cache state, prepare or remove albums, show per-track readiness and summarize cache storage from its Settings interface. SACDPlayer also works independently with the standard LMS interface.
+
+[size=5][b]Reliability and Safety[/b][/size]
+
+SACDPlayer validates disc tables of contents, ISO file identity and extracted DSF output before playback. Cache ownership checks protect unrelated files, concurrent index updates are locked, local ISO paths are omitted from administrative responses and the extraction worker handles timeouts, low disk space and interrupted jobs without blocking later requests.
+
+The release package includes the pinned sacd_extract binary for macOS x86_64 together with its GPL-2.0 license, exact source archive, build provenance and SHA-256 checksums.
+
+[size=5][b]Compatibility[/b][/size]
+
+SACDPlayer supports Lyrion Music Server 8.5 and later. The packaged extractor targets macOS x86_64. Stereo DSD uses the player's existing DSF/DoP support. Multichannel playback requires a player that accepts 5/6-channel DSD; Apple Squeezer currently supports stereo DSD only, so multichannel albums are hidden by default.
+
+[size=5][b]Installation[/b][/size]
+
+Add the SACDPlayer repository URL under Server Settings > Plugins > Additional repositories, then install SACDPlayer and restart LMS when requested:
+
+https://raw.githubusercontent.com/fdfreitas88/SACDPlayer/main/repo.xml
+
+Run a full library rescan after installation so SACDPlayer can discover the SACD ISO images in your music folders.
+
+[size=5][b]Notes[/b][/size]
+
+Extraction is intentionally serialized: SACDPlayer prepares one album at a time and queues additional requests. Enabling multichannel discovery requires another full library rescan. The cache should be placed on a local disk rather than the music network share.
+
+[size=5][b]Links[/b][/size]
+
+Project: https://github.com/fdfreitas88/SACDPlayer
+Release: https://github.com/fdfreitas88/SACDPlayer/releases/tag/v1.0.1
+Changelog: https://github.com/fdfreitas88/SACDPlayer/blob/main/CHANGELOG.md
+
+By Felipe Freitas
